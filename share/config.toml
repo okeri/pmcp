@@ -1,0 +1,6 @@
+music_dir = '~/music'
+visualization = false
+show_progress = true
+read_tags = true
+allow_extensions = ['.flac']
+theme = 'default_theme.toml'

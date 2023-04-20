@@ -1,0 +1,36 @@
+################################################################################
+# syntax:
+# name = { fg = 'foreground color', bg = 'background color',
+# style = [ 'decoration1', 'decoration2' ] }
+# where:
+# - name - value from list below
+# - color - could be or integer value 0-255, or hex value #000000-#ffffff,
+# or string value from following
+# 'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'
+# - style - decoration style, array of values from
+# 'bold', 'dim', 'italic', 'underline', 'blink', 'strike'
+# line = set of 6 characters for frame drawing.
+# states = set of 3 strings for player states (Stopped, Paused, Playing)
+################################################################################
+
+# default =
+frame = { style = 'dim' }
+selected_frame = { fg = 'blue' }
+window_title = { style = 'dim' }
+# playlist_entry = 
+playlist_selected = { bg = 'blue', style = 'bold' }
+playlist_playing = { fg = 'yellow', style = ['underline', 'bold'] }
+# playlist_playing_selected =
+playlist_number = { fg = 'cyan', style = 'dim' }
+playlist_number_selected = { fg = 'cyan', bg = 'blue' }
+playlist_time = { fg = 'cyan', style = 'dim' }
+playlist_time_selected = { fg = 'cyan', bg = 'blue'}
+disabled = { style = 'dim' }
+enabled = { style = 'bold' }
+status_title = { fg = 'blue', style = 'bold' }
+status_state = { fg = 'cyan', style = 'bold' }
+status_time_braces = { style = 'dim' }
+progress_bar = { bg = 'blue', style = 'bold' }
+error = { fg = 'red' }
+line  = ['║', '═', '╔', '╗', '╚', '╝']
+states = ['  ', '||', ' >' ]
