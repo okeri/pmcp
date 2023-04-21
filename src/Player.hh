@@ -44,6 +44,7 @@ class Player {
 
     const State& emit(Command cmd, std::optional<Playqueue>&& = std::nullopt);
     [[nodiscard]] const State& state() const noexcept;
+    [[nodiscard]] const StreamParams& streamParams() const noexcept;
     [[nodiscard]] std::optional<unsigned> currentId() const noexcept;
     [[nodiscard]] const wchar_t* currentSong() const noexcept;
 
@@ -56,6 +57,7 @@ class Player {
     const Options& opts_;
     State state_;
     Source decoder_;
+    StreamParams params_;
     Sink sink_;
     std::optional<Playqueue> queue_;
     unsigned long frames_{0};

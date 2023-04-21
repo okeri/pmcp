@@ -51,6 +51,7 @@ class Sink::Impl {
                     return SPA_AUDIO_FORMAT_S8;
                 case SampleFormat::S16:
                     return SPA_AUDIO_FORMAT_S16;
+                case SampleFormat::S24:
                 case SampleFormat::S32:
                     return SPA_AUDIO_FORMAT_S32;
                 case SampleFormat::F32:
@@ -68,6 +69,7 @@ class Sink::Impl {
                     return 1;
                 case SampleFormat::S16:
                     return 2;
+                case SampleFormat::S24:
                 case SampleFormat::S32:
                 case SampleFormat::F32:
                     return 4;

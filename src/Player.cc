@@ -5,6 +5,7 @@ Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
     char* argv[]) noexcept :
     opts_(opts),
     state_(Stopped()),
+    params_({SampleFormat::None, 2, 44100}),
     sink_(
         [this, progressSender](const auto& buffer) {
             static unsigned long seconds = 0;
@@ -53,9 +54,9 @@ const Player::State& Player::start() noexcept {
             case Source::Error::Ok:
                 state_ = Playing{entry};
                 frames_ = decoder_.frames();
-                auto params = decoder_.streamParams();
-                seekFrames_ = params.rate * SeekSeconds;
-                sink_.start(params);
+                params_ = decoder_.streamParams();
+                seekFrames_ = params_.rate * SeekSeconds;
+                sink_.start(params_);
                 break;
         }
     } else {
@@ -69,6 +70,7 @@ void Player::stop() noexcept {
         state_ = Stopped();
         sink_.stop();
     }
+    params_.format = SampleFormat::None;
 }
 
 const Player::State& Player::emit(
@@ -125,6 +127,10 @@ const Player::State& Player::emit(
 
 const Player::State& Player::state() const noexcept {
     return state_;
+}
+
+const StreamParams& Player::streamParams() const noexcept {
+    return params_;
 }
 
 std::optional<unsigned> Player::currentId() const noexcept {

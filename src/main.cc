@@ -44,7 +44,7 @@ class App {
         player_(std::move(sender), config_.options, argc, argv),
         playview_(config_),
         help_(keymap),
-        status_(config_, player_.state()),
+        status_(config_, player_.state(), player_.streamParams()),
         activeContent_(&playview_) {
         resize();
         render(DrawFlags::All);

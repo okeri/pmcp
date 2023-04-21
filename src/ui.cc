@@ -158,7 +158,27 @@ void render(Status& status, Terminal::Plane& plane) {
 
     const auto& state = status.state();
     const auto& config = status.config();
+    const auto& params = status.streamParams();
     const auto* current = stateEntry(state);
+
+    auto width = [](auto fmt) -> unsigned {
+        switch (fmt) {
+            case SampleFormat::U8:
+            case SampleFormat::S8:
+                return 8;
+            case SampleFormat::S16:
+                return 16;
+            case SampleFormat::S24:
+                return 24;
+            case SampleFormat::S32:
+            case SampleFormat::F32:
+                return 32;
+            case SampleFormat::F64:
+                return 64;
+            default:
+                return 0;
+        }
+    };
 
     auto renderStatusLine = [&]() {
         auto toMinSec = [](unsigned time) -> std::pair<unsigned, unsigned> {
@@ -181,6 +201,13 @@ void render(Status& status, Terminal::Plane& plane) {
               << ttlTime.second << Element::StatusTimeBraces << L"] ";
         if (!config.options.showProgress && current != nullptr) {
             plane << Element::StatusTitle << current->title << L' ';
+        }
+
+        if (params.format != SampleFormat::None) {
+            plane << Element::Enabled
+                  << static_cast<unsigned>(params.rate / 1000)
+                  << Element::Disabled << L"kHz " << Element::Enabled
+                  << width(params.format) << Element::Disabled << L"bit ";
         }
         plane << enabledElement(config.options.shuffle) << L"[SHUFFLE] "
               << enabledElement(config.options.repeat) << L"[REPEAT] "

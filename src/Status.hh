@@ -7,10 +7,12 @@ class Status {
     unsigned progressDone_{0};
     const Config& config_;
     const Player::State& state_;
+    const StreamParams& params_;
 
   public:
-    Status(const Config& config, const Player::State& state) noexcept :
-        config_(config), state_(state) {
+    Status(const Config& config, const Player::State& state,
+        const StreamParams& params) noexcept :
+        config_(config), state_(state), params_(params) {
     }
 
     void setProgress(unsigned progress) noexcept {
@@ -19,6 +21,10 @@ class Status {
 
     [[nodiscard]] unsigned progress() const noexcept {
         return progressDone_;
+    }
+
+    [[nodiscard]] const StreamParams& streamParams() const noexcept {
+        return params_;
     }
 
     [[nodiscard]] const Config& config() const noexcept {

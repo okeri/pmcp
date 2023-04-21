@@ -85,6 +85,8 @@ class Source::Impl {
                     return SampleFormat::S16;
 
                 case SF_FORMAT_PCM_24:
+                    return SampleFormat::S24;
+
                 case SF_FORMAT_PCM_32:
                     return SampleFormat::S32;
 
