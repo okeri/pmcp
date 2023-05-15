@@ -1,3 +1,5 @@
+#include <format>
+
 #include "ui.hh"
 #include "Theme.hh"
 #include "Playlist.hh"
@@ -111,8 +113,8 @@ void render(Playlist& pl, Terminal::Plane& plane, const wchar_t* caption,
         plane << Cursor(left + 1, yCursor);
 
         if (numbers) {
-            plane << numStyle(itemIndex) << Terminal::Pad(' ', numLen)
-                  << itemIndex + 1 << L' ';
+            plane << numStyle(itemIndex)
+                  << std::format(L"{:{}} ", itemIndex + 1, numLen);
         }
         plane << entryStyle(itemIndex);
 
@@ -132,8 +134,8 @@ void render(Playlist& pl, Terminal::Plane& plane, const wchar_t* caption,
         if (pl[itemIndex].duration) {
             auto dur = pl[itemIndex].duration.value();
             plane << Cursor(right - 6 - minutesLen, yCursor)
-                  << timeStyle(itemIndex) << L'[' << Terminal::Pad('0', 2)
-                  << minutes << L':' << dur % 60 << L']';
+                  << timeStyle(itemIndex)
+                  << std::format(L"[{:02}:{:02}]", minutes, dur % 60);
         }
     }
     plane.box(caption, Element::Title, {left, top, cols, rows},
@@ -195,19 +197,19 @@ void render(Status& status, Terminal::Plane& plane) {
 
         plane << Element::StatusState << Theme::state(state.index()) << L' '
               << Element::StatusTimeBraces << L'[' << Element::StatusCurrentTime
-              << Terminal::Pad('0', 2) << curTime.first << L':'
-              << curTime.second << Element::StatusTimeBraces << L'/'
-              << Element::StatusTotalTime << ttlTime.first << L':'
-              << ttlTime.second << Element::StatusTimeBraces << L"] ";
+              << std::format(L"{:02}:{:02}", curTime.first, curTime.second)
+              << Element::StatusTimeBraces << L'/' << Element::StatusTotalTime
+              << std::format(L"{:02}:{:02}", ttlTime.first, ttlTime.second)
+              << Element::StatusTimeBraces << L"] ";
         if (!config.options.showProgress && current != nullptr) {
             plane << Element::StatusTitle << current->title << L' ';
         }
 
         if (params.format != SampleFormat::None) {
-            plane << Element::Enabled
-                  << static_cast<unsigned>(params.rate / 1000)
+            plane << Element::Enabled << std::to_wstring(params.rate / 1000)
                   << Element::Disabled << L"kHz " << Element::Enabled
-                  << width(params.format) << Element::Disabled << L"bit ";
+                  << std::to_wstring(width(params.format)) << Element::Disabled
+                  << L"bit ";
         }
         plane << enabledElement(config.options.shuffle) << L"[SHUFFLE] "
               << enabledElement(config.options.repeat) << L"[REPEAT] "

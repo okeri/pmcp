@@ -1,0 +1,31 @@
+#pragma once
+
+enum class Action {
+    Quit,
+    Play,
+    Up,
+    Down,
+    PgUp,
+    PgDown,
+    Home,
+    End,
+    Stop,
+    Next,
+    Prev,
+    Pause,
+    ToggleLists,
+    ToggleProgress,
+    ToggleTags,
+    ToggleShuffle,
+    ToggleRepeat,
+    ToggleNext,
+    ToggleLyrics,
+    ToggleHelp,
+    AddToPlaylist,
+    Delete,
+    Clear,
+    FF,
+    Rew,
+    ResetView,
+    Count
+};

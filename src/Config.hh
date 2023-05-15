@@ -9,6 +9,7 @@ struct Config {
     std::wstring home;
     std::wstring themePath;
     std::wstring keymapPath;
+    std::string socketPath;
     std::unordered_set<std::wstring> whiteList;
     Options options;
 

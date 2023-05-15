@@ -33,18 +33,9 @@ class Terminal {
         unsigned rows;
     };
 
-    struct Pad {
-        wchar_t symbol{' '};
-        unsigned width{0};
-
-        constexpr Pad() noexcept = default;
-        constexpr Pad(wchar_t s, unsigned w) noexcept : symbol(s), width(w) {
-        }
-    };
-
     class Plane {
         class Impl;
-        PImpl<Impl, 56, 8> impl_;
+        PImpl<Impl, 48, 8> impl_;
         explicit Plane(const Bounds& pos) noexcept;
         friend class Terminal;
 
@@ -60,11 +51,10 @@ class Terminal {
         void box(std::wstring_view caption, Element captionStyle,
             const Bounds& pos, Element lineStyle) noexcept;
         [[nodiscard]] Size size() const noexcept;
+
         Plane& operator<<(CSI csi) noexcept;
         Plane& operator<<(const Cursor& cursor) noexcept;
         Plane& operator<<(const Element element) noexcept;
-        Plane& operator<<(unsigned value) noexcept;
-        Plane& operator<<(const Pad& pad) noexcept;
         Plane& operator<<(std::wstring_view s) noexcept;
         Plane& operator<<(wchar_t c) noexcept;
     };

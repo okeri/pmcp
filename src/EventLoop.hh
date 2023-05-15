@@ -10,7 +10,7 @@ class EventLoop {
     std::thread job_;
 
   public:
-    EventLoop(Sender<Msg> sender, const Keymap& keymap);
+    EventLoop(Sender<Msg> sender, const Keymap& keymap, const char* socketPath);
     EventLoop(const EventLoop&) = delete;
     EventLoop(EventLoop&&) = delete;
     EventLoop& operator=(const EventLoop&) = delete;

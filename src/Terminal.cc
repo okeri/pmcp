@@ -216,20 +216,10 @@ class Terminal::Plane::Impl {
     Size size_;
     unsigned cursor_{0};
     std::vector<Cell> cells_;
-    Pad pad_;
     friend class Terminal;
 
     [[nodiscard]] unsigned calcCellSize() const noexcept {
         return size_.rows * size_.cols;
-    }
-
-    void applyPad(unsigned len) {
-        if (pad_.width > len) {
-            auto count = pad_.width - len;
-            for (; count != 0; --count) {
-                cells_[cursor_++] = pad_.symbol;
-            }
-        }
     }
 
     unsigned putText(std::wstring_view s, unsigned cursor) noexcept {
@@ -248,8 +238,7 @@ class Terminal::Plane::Impl {
         left_(pos.left),
         top_(pos.top),
         size_({pos.cols, pos.rows}),
-        cells_(calcCellSize()),
-        pad_(' ', 0) {
+        cells_(calcCellSize()) {
     }
 
     [[nodiscard]] const Size& size() const noexcept {
@@ -297,24 +286,12 @@ class Terminal::Plane::Impl {
         cells_[cursor_].setStyle(element);
     }
 
-    void operator<<(unsigned value) noexcept {
-        auto text = std::to_wstring(value);
-        applyPad(text.length());
-        for (auto c : text) {
-            cells_[cursor_++] = c;
-        }
-    }
-
     void operator<<(wchar_t c) noexcept {
         cells_[cursor_++] = c;
     }
 
     void operator<<(std::wstring_view s) noexcept {
         cursor_ = putText(s, cursor_);
-    }
-
-    void operator<<(const Pad& pad) noexcept {
-        pad_ = pad;
     }
 
     void box(std::wstring_view caption, Element captionStyle, const Bounds& pos,
@@ -403,18 +380,8 @@ Terminal::Plane& Terminal::Plane::operator<<(const Element element) noexcept {
     return *this;
 }
 
-Terminal::Plane& Terminal::Plane::operator<<(const Pad& pad) noexcept {
-    *impl_ << pad;
-    return *this;
-}
-
 Terminal::Plane& Terminal::Plane::operator<<(wchar_t c) noexcept {
     *impl_ << c;
-    return *this;
-}
-
-Terminal::Plane& Terminal::Plane::operator<<(unsigned value) noexcept {
-    *impl_ << value;
     return *this;
 }
 

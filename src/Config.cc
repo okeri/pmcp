@@ -16,13 +16,23 @@ std::wstring defaultHome() {
     return utf8::convert(home);
 }
 
-std::wstring configPath() {
+std::wstring configPath() noexcept {
     const auto* configHome =
         getenv("XDG_CONFIG_HOME");  // NOLINT:concurrency-mt-unsafe
     if (configHome != nullptr) {
         return (fs::path(utf8::convert(configHome)) / "pmcp").wstring();
     } else {
         return (fs::path(defaultHome()) / ".config" / "pmcp").wstring();
+    }
+}
+
+std::string sockPath() {
+    const auto* runtimePath =
+        getenv("XDG_RUNTIME_DIR");  // NOLINT:concurrency-mt-unsafe
+    if (runtimePath != nullptr) {
+        return (fs::path(runtimePath) / "pmcp.sock").string();
+    } else {
+        return "/tmp/pmcp.sock";
     }
 }
 
@@ -52,6 +62,7 @@ Config::Config() {
             [this](const std::wstring& value) { whiteList.insert(value); });
     }
     auto optsPath = (confPath / "options.toml").wstring();
+    socketPath = sockPath();
     if (fs::exists(optsPath)) {
         auto root = Toml(optsPath);
         auto setBoolMaybe = [&root](bool& value, const std::string& key) {

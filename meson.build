@@ -15,6 +15,7 @@ files = [
   'src/Config.cc',
   'src/Theme.cc',
   'src/EventLoop.cc',
+  'src/Server.cc',
   'src/Keymap.cc',
   'src/Player.cc',
   'src/Source.cc',
@@ -26,6 +27,10 @@ files = [
   'src/Help.cc',
   'src/Lyrics.cc'
 ]
+
+if not cc.has_header('format')
+  error('compiler with c++20 format support is required. gcc 13+ for ex.')
+endif
 
 if not cc.has_header('cpptoml.h')
   error('cpptoml not installed')
@@ -40,3 +45,7 @@ deps = [
 ]
 
 executable('pmcp', files, dependencies: deps)
+
+if get_option('ctl').enabled()
+  executable('pmcpctl', ['src/ctl.cc'])
+endif
