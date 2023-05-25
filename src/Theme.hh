@@ -55,7 +55,7 @@ class Theme {
     [[nodiscard]] static wchar_t lineChar(LineType t);
     [[nodiscard]] static const std::wstring& state(unsigned index);
 
-    static void load(const wchar_t* path);
+    static void load(const char* path);
 
   private:
     std::vector<Style> styles_;

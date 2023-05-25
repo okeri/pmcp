@@ -1,9 +1,10 @@
 #include "PlayerView.hh"
+#include "utf8.hh"
 
 PlayerView::PlayerView(const Config& config) :
-    path_(config.home),
-    lists_({Playlist(path_, config),
-        Playlist(std::vector<Playlist::Entry>(), config)}) {
+    path_(utf8::convert(config.home)),
+    lists_({Playlist::scan(config.home, config),
+        Playlist::load(config.playlistPath, config)}) {
 }
 
 Playlist& PlayerView::activeList() noexcept {
@@ -59,11 +60,13 @@ std::optional<Playqueue> PlayerView::enter() noexcept {
                 lists_[0].setPlaying(std::nullopt);
                 playlistQueued_ = -1;
             }
-            auto newsel = selItem.title == L"../"
-                              ? std::make_optional<std::wstring>(path_)
-                              : std::nullopt;
-            path_ = selItem.path;
-            list.listDir(path_);
+            auto newsel =
+                selItem.title == L"../"
+                    ? std::make_optional<std::string>(utf8::convert(path_))
+                    : std::nullopt;
+            auto newpath = selItem.path;
+            path_ = utf8::convert(newpath);
+            list.listDir(newpath);
             if (newsel) {
                 for (auto i = 0u; i < list.count(); ++i) {
                     if (list[i].path == *newsel) {
@@ -96,7 +99,7 @@ std::optional<Playqueue> PlayerView::enter() noexcept {
 
 void PlayerView::markPlaying(const std::optional<unsigned>& id) noexcept {
     lists_[0].setPlaying(std::nullopt);
-    lists_[0].setPlaying(std::nullopt);
+    lists_[1].setPlaying(std::nullopt);
     if (playlistQueued_ > -1) {
         lists_[playlistQueued_ ? 1 : 0].setPlaying(id);
     }
@@ -112,4 +115,8 @@ bool PlayerView::playlistActive() const noexcept {
 
 Playlist& PlayerView::operator[](unsigned index) noexcept {
     return lists_[index];
+}
+
+PlayerView::~PlayerView() {
+    lists_[1].save();
 }

@@ -19,6 +19,10 @@ std::wstring convert(const char* str) {
     return convert(str, strlen(str));
 }
 
+std::wstring convert(const std::string& str) {
+    return convert(str.c_str(), str.length());
+}
+
 std::string convert(const std::wstring& str) {
     auto result = std::string();
     size_t len = str.length() << 2;

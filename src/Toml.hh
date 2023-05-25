@@ -18,7 +18,7 @@ class Toml {
         std::function<void(const std::string& value, const Toml& toml)>;
 
     explicit Toml(Node&& node) noexcept;
-    explicit Toml(const std::wstring& filename);
+    explicit Toml(const std::string& filename);
 
     Toml();
     Toml(const Toml&) = delete;
@@ -69,5 +69,5 @@ class Toml {
 
     void push(const std::string& key, const std::wstring& value);
     void push(const std::string& key, bool value);
-    void save(const std::wstring& filename);
+    void save(const std::string& filename);
 };

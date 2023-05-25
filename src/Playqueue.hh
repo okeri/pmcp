@@ -9,9 +9,9 @@ struct Entry {
     unsigned id;
     unsigned duration;
     std::wstring title;
-    std::wstring path;
+    std::string path;
 
-    Entry(unsigned i, unsigned d, std::wstring t, std::wstring p) :
+    Entry(unsigned i, unsigned d, std::wstring t, std::string p) :
         id(i), duration(d), title(std::move(t)), path(std::move(p)) {
     }
     auto operator<=>(const Entry&) const = default;

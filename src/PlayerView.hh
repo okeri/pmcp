@@ -10,6 +10,7 @@
 
 class PlayerView {
     static constexpr auto ListCount = 2;
+
     std::wstring path_;
     bool playlistActive_{false};
     int playlistQueued_{-1};
@@ -19,6 +20,11 @@ class PlayerView {
 
   public:
     explicit PlayerView(const Config& config);
+    PlayerView(const PlayerView&) = delete;
+    PlayerView(PlayerView&&) = delete;
+    PlayerView& operator=(const PlayerView&) = delete;
+    PlayerView& operator=(PlayerView&&) = delete;
+    ~PlayerView();
 
     void up(unsigned offset) noexcept;
     void down(unsigned offset) noexcept;

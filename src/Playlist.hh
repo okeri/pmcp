@@ -10,19 +10,22 @@ class Playlist final : public ScrollableElements {
   public:
     struct Entry {
         std::wstring title;
-        std::wstring path;
+        std::string path;
         std::optional<unsigned> duration;
 
-        Entry(const std::wstring& path, bool isDir);
-        Entry(std::wstring t, std::wstring p, std::optional<unsigned> d);
+        Entry(const std::string& path, bool isDir);
+        Entry(std::wstring t, std::string p, std::optional<unsigned> d);
         [[nodiscard]] bool isDir() const noexcept;
         auto operator<=>(const Entry&) const;
     };
 
     Playlist(std::vector<Entry> items, const Config& config);
-    Playlist(const std::wstring& path, const Config& config);
 
-    void listDir(const std::wstring& path);
+    static Playlist scan(const std::string& path, const Config& config);
+    static Playlist load(const std::string& path, const Config& config);
+    void save(const std::string& path = "");
+
+    void listDir(const std::string& path);
     void select(unsigned index) noexcept;
     void setPlaying(const std::optional<unsigned>& index) noexcept;
     void clear() noexcept;

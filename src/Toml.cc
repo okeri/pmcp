@@ -8,17 +8,14 @@
 class Toml::Impl {
     std::shared_ptr<cpptoml::base> node_;
     friend class Toml;
-    static std::string cstr(const std::wstring& value) {
-        return {value.begin(), value.end()};
-    }
 
   public:
     Impl() : node_(cpptoml::make_table()) {
     }
 
-    explicit Impl(const std::wstring& filename) {
+    explicit Impl(const std::string& filename) {
         try {
-            node_ = cpptoml::parse_file(cstr(filename));
+            node_ = cpptoml::parse_file(filename);
         } catch (cpptoml::parse_exception& e) {
         }
     }
@@ -43,7 +40,7 @@ class Toml::Impl {
         if (auto array = node_->as_array()) {
             for (const auto& value : *array.get()) {
                 auto str = value->as<std::string>()->get();
-                cb(utf8::convert(str.c_str(), str.length()));
+                cb(utf8::convert(str));
             }
             return true;
         }
@@ -79,7 +76,7 @@ class Toml::Impl {
             if constexpr (std::is_same_v<std::wstring, R>) {
                 if (auto result = node_->as<std::string>()->get();
                     !result.empty()) {
-                    return utf8::convert(result.c_str(), result.length());
+                    return utf8::convert(result);
                 }
             } else {
                 if (auto result = node_->as<std::decay_t<R>>()) {
@@ -115,7 +112,7 @@ class Toml::Impl {
 
 Toml::Toml() = default;
 
-Toml::Toml(const std::wstring& filename) : impl_(filename) {
+Toml::Toml(const std::string& filename) : impl_(filename) {
 }
 
 Toml::Toml(Node&& node) noexcept : impl_(std::move(node)) {
@@ -167,8 +164,8 @@ void Toml::push(const std::string& key, bool value) {
     impl_->push(key, cpptoml::make_value(value));
 }
 
-void Toml::save(const std::wstring& filename) {
-    impl_->save(utf8::convert(filename));
+void Toml::save(const std::string& filename) {
+    impl_->save(filename);
 }
 
 std::optional<bool> Toml::as_bool() const noexcept {

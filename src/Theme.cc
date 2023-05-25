@@ -42,7 +42,7 @@ std::optional<unsigned> parseInt(const std::string& strVal) {
 Theme::Theme() : styles_(cast(Element::Count)) {
 }
 
-void Theme::load(const wchar_t* path) {
+void Theme::load(const char* path) {
     constexpr auto stdColorCount = 16;
     // support 8bit and 24bit format as well as some readable aliases
     std::array<std::string, stdColorCount> stdColors = {"black", "red", "green",

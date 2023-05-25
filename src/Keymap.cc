@@ -88,7 +88,6 @@ static std::array<ActionDescription, count> descriptions{{{"quit",
     {"prev", L"Previous song"}, {"pause", L"Toggle pause"},
     {"toggle", L"Switch between playlists"},
     {"toggle_progress", L"Toggle progress bar display"},
-    {"toggle_tags", L"Toggle read_tags option"},
     {"toggle_shuffle", L"Toggle Shuffle option"},
     {"toggle_repeat", L"Toggle Repeat option"},
     {"toggle_next", L"Toggle Next option"},
@@ -100,7 +99,7 @@ static std::array<ActionDescription, count> descriptions{{{"quit",
 
 }  // namespace
 
-Keymap::Keymap(const std::wstring& path) :
+Keymap::Keymap(const std::string& path) :
     keymap_({{static_cast<input::Key>('q'), Action::Quit},
         {static_cast<input::Key>('Q'), Action::Quit}, {input::Up, Action::Up},
         {input::Down, Action::Down}, {input::Left, Action::Rew},
@@ -116,7 +115,6 @@ Keymap::Keymap(const std::wstring& path) :
         {static_cast<input::Key>('A'), Action::AddToPlaylist},
         {static_cast<input::Key>('a'), Action::AddToPlaylist},
         {static_cast<input::Key>('P'), Action::ToggleProgress},
-        {static_cast<input::Key>('f'), Action::ToggleTags},
         {static_cast<input::Key>('S'), Action::ToggleShuffle},
         {static_cast<input::Key>('R'), Action::ToggleRepeat},
         {static_cast<input::Key>('N'), Action::ToggleNext},

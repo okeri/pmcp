@@ -6,10 +6,10 @@
 #include "Action.hh"
 #include "input.hh"
 
-
 class Keymap {
   public:
-    explicit Keymap(const std::wstring& path);
+    explicit Keymap(const std::string& path);
+
     Keymap(const Keymap&) = delete;
     Keymap(Keymap&&) = delete;
     Keymap& operator=(const Keymap&) = delete;

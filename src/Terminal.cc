@@ -464,7 +464,7 @@ Terminal& term() {
     return terminal;
 }
 
-void loadTheme(const wchar_t* path) {
+void loadTheme(const char* path) {
     Theme::load(path);
     styles();
 }

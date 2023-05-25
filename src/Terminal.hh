@@ -71,4 +71,4 @@ class Terminal {
 };
 
 Terminal& term();
-void loadTheme(const wchar_t* path);
+void loadTheme(const char* path);

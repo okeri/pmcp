@@ -1,5 +1,4 @@
 #include "Player.hh"
-#include "utf8.hh"
 
 Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
     char* argv[]) noexcept :
@@ -33,7 +32,7 @@ const Player::State& Player::start() noexcept {
     sink_.stop();
     if (queue_) {
         auto entry = queue_->current();
-        auto error = decoder_.load(utf8::convert(entry.path).c_str());
+        auto error = decoder_.load(entry.path.c_str());
         switch (error) {
             case Source::Error::BadFormat:
                 state_ = Stopped{L"bad format"};

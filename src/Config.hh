@@ -6,11 +6,12 @@
 #include "Options.hh"
 
 struct Config {
-    std::wstring home;
-    std::wstring themePath;
-    std::wstring keymapPath;
+    std::string home;
+    std::string themePath;
+    std::string keymapPath;
+    std::string playlistPath;
     std::string socketPath;
-    std::unordered_set<std::wstring> whiteList;
+    std::unordered_set<std::string> whiteList;
     Options options;
 
     Config();

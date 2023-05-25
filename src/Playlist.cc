@@ -1,17 +1,17 @@
 #include <filesystem>
+#include <fstream>
 
 #include <fileref.h>
 #include <tag.h>
 
 #include "Playlist.hh"
-#include "utf8.hh"
 
 namespace fs = std::filesystem;
 
-Playlist::Entry::Entry(const std::wstring& p, bool isDir) {
+Playlist::Entry::Entry(const std::string& p, bool isDir) {
     if (!isDir) {
         path = p;
-        TagLib::FileRef f(utf8::convert(p).c_str());
+        TagLib::FileRef f(p.c_str());
         if (!f.isNull() && f.tag() && f.audioProperties()) {
             title = f.tag()->artist().toWString() + L" - " +
                     f.tag()->title().toCWString();
@@ -22,12 +22,12 @@ Playlist::Entry::Entry(const std::wstring& p, bool isDir) {
         }
     } else {
         title = L"../";
-        path = fs::path(p).parent_path().wstring();
+        path = fs::path(p).parent_path().string();
     }
 }
 
 Playlist::Entry::Entry(
-    std::wstring t, std::wstring p, std::optional<unsigned> d) :
+    std::wstring t, std::string p, std::optional<unsigned> d) :
     title(std::move(t)), path(std::move(p)), duration(d) {
 }
 
@@ -45,12 +45,6 @@ auto Playlist::Entry::operator<=>(const Entry& other) const {
 
 Playlist::Playlist(std::vector<Entry> items, const Config& config) :
     config_(config), items_(std::move(items)) {
-}
-
-Playlist::Playlist(const std::wstring& path, const Config& config) :
-    config_(config) {
-    listDir(path);
-    home(true);
 }
 
 void Playlist::select(unsigned index) noexcept {
@@ -155,27 +149,43 @@ std::vector<Playlist::Entry> Playlist::recursiveCollect(unsigned index) {
     for (auto e : fs::recursive_directory_iterator(entry.path)) {
         if (!e.is_directory() &&
             (config_.whiteList.empty() ||
-                config_.whiteList.contains(e.path().extension().wstring()))) {
-            result.emplace_back(e.path().wstring(), false);
+                config_.whiteList.contains(e.path().extension().string()))) {
+            result.emplace_back(e.path().string(), false);
         }
     }
     std::sort(result.begin(), result.end());
     return result;
 }
 
-void Playlist::listDir(const std::wstring& path) {
+void Playlist::listDir(const std::string& path) {
     clear();
-    if (path != L"/") {
+    if (path != "/") {
         items_.emplace_back(path, true);
     }
     for (auto e : fs::directory_iterator(path)) {
         if (e.is_directory()) {
             items_.emplace_back(e.path().filename().wstring() + L'/',
-                e.path().wstring(), std::nullopt);
+                e.path().string(), std::nullopt);
         } else if (config_.whiteList.empty() ||
-                   config_.whiteList.contains(e.path().extension().wstring())) {
-            items_.emplace_back(e.path().wstring(), false);
+                   config_.whiteList.contains(e.path().extension().string())) {
+            items_.emplace_back(e.path().string(), false);
         }
     }
     std::sort(items_.begin(), items_.end());
+}
+
+Playlist Playlist::scan(const std::string& path, const Config& config) {
+    Playlist result({}, config);
+    result.listDir(path);
+    result.home(true);
+    return result;
+}
+
+Playlist Playlist::load(const std::string& path, const Config& config) {
+    std::vector<Entry> entries;
+    return {entries, config};
+}
+
+void Playlist::save(const std::string& path) {
+    auto filename = path.empty() ? config_.playlistPath : path;
 }
