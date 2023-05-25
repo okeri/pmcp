@@ -1,10 +1,12 @@
 #include <filesystem>
 #include <fstream>
+#include <charconv>
 
 #include <fileref.h>
 #include <tag.h>
 
 #include "Playlist.hh"
+#include "utf8.hh"
 
 namespace fs = std::filesystem;
 
@@ -183,9 +185,35 @@ Playlist Playlist::scan(const std::string& path, const Config& config) {
 
 Playlist Playlist::load(const std::string& path, const Config& config) {
     std::vector<Entry> entries;
+    if (auto input = std::ifstream(path)) {
+        std::string line;
+        Entry entry(path, true);
+        while (std::getline(input, line)) {
+            if (line.length() > 8 && line.compare(0, 8, "#EXTINF:") == 0) {
+                if (auto end = line.find(','); end != std::string::npos) {
+                    unsigned dur;
+                    std::from_chars(line.c_str() + 8, line.c_str() + end, dur);
+                    entry.duration = dur;
+                    entry.title = utf8::convert(line.substr(end + 1));
+                }
+            } else if (line.length() > 0 && line[0] != '#') {
+                entry.path = line;
+                entries.push_back(entry);
+            }
+        }
+    }
     return {entries, config};
 }
 
 void Playlist::save(const std::string& path) {
     auto filename = path.empty() ? config_.playlistPath : path;
+    std::ofstream output(filename);
+    output << "#EXTM3U" << std::endl;
+    for (const auto& item : items_) {
+        if (!item.isDir()) {
+            output << "#EXTINF:" << *item.duration << ","
+                   << utf8::convert(item.title) << std::endl;
+            output << item.path << std::endl;
+        }
+    }
 }
