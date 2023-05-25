@@ -118,10 +118,6 @@ class App {
                 resize();
                 break;
 
-            case Action::ToggleTags:
-                // TODO: ability to disable read_tags
-                break;
-
             case Action::ToggleShuffle:
                 config_.options.shuffle = !config_.options.shuffle;
                 player_.updateShuffleQueue();

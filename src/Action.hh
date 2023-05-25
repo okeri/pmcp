@@ -15,7 +15,6 @@ enum class Action {
     Pause,
     ToggleLists,
     ToggleProgress,
-    ToggleTags,
     ToggleShuffle,
     ToggleRepeat,
     ToggleNext,
