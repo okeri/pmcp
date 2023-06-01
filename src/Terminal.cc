@@ -9,7 +9,6 @@
 #include "Theme.hh"
 #include "Terminal.hh"
 #include "input.hh"
-#include "utf8.hh"
 
 namespace {
 
