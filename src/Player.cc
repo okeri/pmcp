@@ -10,17 +10,19 @@ Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
             static unsigned long seconds = 0;
             auto result = decoder_.fill(buffer);
             framesDone_ += result;
-            if (result != 0) {
-                auto doneSec =
-                    framesDone_ *
-                    std::get_if<Player::Playing>(&state_)->entry.duration /
-                    frames_;
-                if (doneSec != seconds) {
-                    seconds = doneSec;
-                    progressSender.send(Msg(static_cast<unsigned>(doneSec)));
-                }
-            } else {
-                progressSender.send(Msg(EndOfSong));
+
+            auto entry = currentEntry();
+            if (!entry) {
+                return result;
+            }
+            auto doneSec = result != 0
+                               ? static_cast<unsigned>(
+                                     framesDone_ * entry->duration / frames_)
+                               : EndOfSong;
+
+            if (doneSec != seconds) {
+                seconds = doneSec;
+                progressSender.send(Msg(static_cast<unsigned>(doneSec)));
             }
             return result;
         },
@@ -28,8 +30,8 @@ Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
 }
 
 const Player::State& Player::start() noexcept {
-    framesDone_ = 0;
     sink_.stop();
+    framesDone_ = 0;
     if (queue_) {
         auto entry = queue_->current();
         auto error = decoder_.load(entry.path.c_str());
@@ -66,8 +68,8 @@ const Player::State& Player::start() noexcept {
 
 void Player::stop() noexcept {
     if (std::get_if<Stopped>(&state_) == nullptr) {
-        state_ = Stopped();
         sink_.stop();
+        state_ = Stopped();
     }
     params_.format = SampleFormat::None;
 }
@@ -132,34 +134,35 @@ const StreamParams& Player::streamParams() const noexcept {
     return params_;
 }
 
-std::optional<unsigned> Player::currentId() const noexcept {
+const Entry* Player::currentEntry() const noexcept {
     return std::visit(
-        [](auto&& value) -> std::optional<unsigned> {
+        [](auto&& value) -> const Entry* {
             using Type = std::decay_t<decltype(value)>;
             if constexpr (std::is_same<Type, Player::Playing>()) {
-                return value.entry.id;
+                return &value.entry;
             } else if constexpr (std::is_same<Type, Player::Paused>()) {
-                return value.entry.id;
-            } else {
-                return {};
-            }
-        },
-        state_);
-}
-
-const wchar_t* Player::currentSong() const noexcept {
-    return std::visit(
-        [](auto&& value) -> const wchar_t* {
-            using Type = std::decay_t<decltype(value)>;
-            if constexpr (std::is_same<Type, Player::Playing>()) {
-                return value.entry.title.c_str();
-            } else if constexpr (std::is_same<Type, Player::Paused>()) {
-                return value.entry.title.c_str();
+                return &value.entry;
             } else {
                 return nullptr;
             }
         },
         state_);
+}
+
+std::optional<unsigned> Player::currentId() const noexcept {
+    const auto* entry = currentEntry();
+    if (entry) {
+        return entry->id;
+    }
+    return {};
+}
+
+const wchar_t* Player::currentSong() const noexcept {
+    const auto* entry = currentEntry();
+    if (entry) {
+        return entry->title.c_str();
+    }
+    return nullptr;
 }
 
 bool Player::stopped() const noexcept {
@@ -168,13 +171,15 @@ bool Player::stopped() const noexcept {
 
 void Player::ff() noexcept {
     if (!stopped()) {
-        framesDone_ = decoder_.seek(seekFrames_);
+        auto left = frames_ - framesDone_;
+        framesDone_ = decoder_.seek(std::min(seekFrames_, left));
     }
 }
 
 void Player::rew() noexcept {
     if (!stopped()) {
-        framesDone_ = decoder_.seek(-seekFrames_);
+        auto diff = framesDone_ - seekFrames_;
+        framesDone_ = decoder_.seek(diff < 0 ? diff : -seekFrames_);
     }
 }
 

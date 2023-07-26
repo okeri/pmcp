@@ -23,6 +23,8 @@ class Playlist final : public ScrollableElements {
 
     static Playlist scan(const std::string& path, const Config& config);
     static Playlist load(const std::string& path, const Config& config);
+    static std::vector<Entry> collect(
+        const std::string& path, const Config& config);
     void save(const std::string& path = "");
 
     void listDir(const std::string& path);

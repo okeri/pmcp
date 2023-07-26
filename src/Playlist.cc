@@ -47,6 +47,7 @@ auto Playlist::Entry::operator<=>(const Entry& other) const {
 
 Playlist::Playlist(std::vector<Entry> items, const Config& config) :
     config_(config), items_(std::move(items)) {
+    home(true);
 }
 
 void Playlist::select(unsigned index) noexcept {
@@ -159,28 +160,31 @@ std::vector<Playlist::Entry> Playlist::recursiveCollect(unsigned index) {
     return result;
 }
 
-void Playlist::listDir(const std::string& path) {
-    clear();
+std::vector<Playlist::Entry> Playlist::collect(
+    const std::string& path, const Config& config) {
+    std::vector<Playlist::Entry> result;
     if (path != "/") {
-        items_.emplace_back(path, true);
+        result.emplace_back(path, true);
     }
     for (auto e : fs::directory_iterator(path)) {
         if (e.is_directory()) {
-            items_.emplace_back(e.path().filename().wstring() + L'/',
+            result.emplace_back(e.path().filename().wstring() + L'/',
                 e.path().string(), std::nullopt);
-        } else if (config_.whiteList.empty() ||
-                   config_.whiteList.contains(e.path().extension().string())) {
-            items_.emplace_back(e.path().string(), false);
+        } else if (config.whiteList.empty() ||
+                   config.whiteList.contains(e.path().extension().string())) {
+            result.emplace_back(e.path().string(), false);
         }
     }
-    std::sort(items_.begin(), items_.end());
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+void Playlist::listDir(const std::string& path) {
+    items_ = collect(path, config_);
 }
 
 Playlist Playlist::scan(const std::string& path, const Config& config) {
-    Playlist result({}, config);
-    result.listDir(path);
-    result.home(true);
-    return result;
+    return {collect(path, config), config};
 }
 
 Playlist Playlist::load(const std::string& path, const Config& config) {

@@ -67,7 +67,7 @@ class Source::Impl {
         return fillFunction_(buffer);
     }
 
-    unsigned long seek(long frames) noexcept {
+    long seek(long frames) noexcept {
         std::unique_lock<std::mutex> lock(mutex_);
         return sndfile_->seek(frames, SF_SEEK_CUR);
     }
@@ -106,7 +106,7 @@ class Source::Impl {
             static_cast<unsigned>(sndfile_->samplerate())};
     }
 
-    [[nodiscard]] unsigned frames() const noexcept {
+    [[nodiscard]] long frames() const noexcept {
         return sndfile_->frames();
     }
 };
@@ -123,11 +123,11 @@ StreamParams Source::streamParams() const noexcept {
     return impl_->streamParams();
 }
 
-unsigned Source::frames() const noexcept {
+long Source::frames() const noexcept {
     return impl_->frames();
 }
 
-unsigned long Source::seek(long frames) noexcept {
+long Source::seek(long frames) noexcept {
     return impl_->seek(frames);
 }
 

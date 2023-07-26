@@ -19,9 +19,9 @@ class Source {
     Source& operator=(const Source&) = delete;
     Source& operator=(Source&&) = delete;
     unsigned fill(const AudioBuffer& buffer) noexcept;
-    [[nodiscard]] unsigned frames() const noexcept;
+    [[nodiscard]] long frames() const noexcept;
     Error load(const char* filename) noexcept;
     [[nodiscard]] StreamParams streamParams() const noexcept;
-    unsigned long seek(long frames) noexcept;
+    long seek(long frames) noexcept;
     ~Source();
 };

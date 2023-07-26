@@ -11,6 +11,18 @@ class Sink::Impl {
     unsigned stride_{0};
     Sink::BufferFillRoutine fillBuffer_;
 
+    class LoopLock {
+        pw_thread_loop* loop_;
+
+      public:
+        explicit LoopLock(pw_thread_loop* loop) : loop_(loop) {
+            pw_thread_loop_lock(loop_);
+        }
+        ~LoopLock() {
+            pw_thread_loop_unlock(loop_);
+        }
+    };
+
   public:
     Impl(const Impl&) = delete;
     Impl(Impl&&) = delete;
@@ -25,17 +37,19 @@ class Sink::Impl {
 
     void stop() noexcept {
         if (stream_ != nullptr) {
+            {
+                LoopLock lock(loop_);
+                pw_stream_destroy(stream_);
+            }
             pw_thread_loop_stop(loop_);
-            pw_stream_destroy(stream_);
             stream_ = nullptr;
         }
     }
 
     void activate(bool active) const noexcept {
         if (stream_ != nullptr) {
-            pw_thread_loop_lock(loop_);
+            LoopLock lock(loop_);
             pw_stream_set_active(stream_, active);
-            pw_thread_loop_unlock(loop_);
         }
     }
 
