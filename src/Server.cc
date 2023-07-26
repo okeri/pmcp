@@ -32,7 +32,7 @@ std::optional<Action> Server::read(int client) const noexcept {
         return result;
     }
     close(client);
-    return std::nullopt;
+    return {};
 }
 
 int Server::accept() const noexcept {

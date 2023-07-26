@@ -84,7 +84,7 @@ class Toml::Impl {
                 }
             }
         }
-        return std::nullopt;
+        return {};
     }
 
     [[nodiscard]] std::optional<Toml> get(const std::string& key) const {
@@ -92,10 +92,9 @@ class Toml::Impl {
             try {
                 return Toml(Node(node_->as_table()->get(key)));
             } catch (std::out_of_range& e) {
-                return std::nullopt;
             }
         }
-        return std::nullopt;
+        return {};
     }
 
     void push(

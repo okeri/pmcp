@@ -94,7 +94,7 @@ std::optional<Playqueue> PlayerView::enter() noexcept {
             return Playqueue(std::move(qi), index);
         }
     }
-    return std::nullopt;
+    return {};
 }
 
 void PlayerView::markPlaying(const std::optional<unsigned>& id) noexcept {

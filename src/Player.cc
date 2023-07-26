@@ -141,7 +141,7 @@ std::optional<unsigned> Player::currentId() const noexcept {
             } else if constexpr (std::is_same<Type, Player::Paused>()) {
                 return value.entry.id;
             } else {
-                return std::nullopt;
+                return {};
             }
         },
         state_);

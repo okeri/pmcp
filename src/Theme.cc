@@ -34,7 +34,7 @@ std::optional<unsigned> parseInt(const std::string& strVal) {
         return (
             err.ec == std::errc() ? std::make_optional(uintVal) : std::nullopt);
     }
-    return std::nullopt;
+    return {};
 }
 
 }  // namespace

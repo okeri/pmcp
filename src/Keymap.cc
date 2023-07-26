@@ -184,7 +184,7 @@ std::optional<Action> Keymap::map(input::Key key) const noexcept {
     if (auto found = keymap_.find(key); found != keymap_.end()) {
         return found->second;
     }
-    return std::nullopt;
+    return {};
 }
 
 std::wstring Keymap::name(input::Key key) {

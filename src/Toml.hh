@@ -54,7 +54,7 @@ class Toml {
         } else if constexpr (std::is_same_v<R, std::string>) {
             return as_string();
         } else {
-            return std::nullopt;
+            return {};
         }
     }
 
@@ -64,7 +64,7 @@ class Toml {
         if (val) {
             return val->as<T>();
         }
-        return std::nullopt;
+        return {};
     }
 
     void push(const std::string& key, const std::wstring& value);
