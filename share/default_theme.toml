@@ -25,11 +25,15 @@ playlist_number = { fg = 'cyan', style = 'dim' }
 playlist_number_selected = { fg = 'cyan', bg = 'blue' }
 playlist_time = { fg = 'cyan', style = 'dim' }
 playlist_time_selected = { fg = 'cyan', bg = 'blue'}
+volume_caption = { style = 'dim' }
+volume_value = { fg = 'yellow', style = 'dim' }
 disabled = { style = 'dim' }
 enabled = { style = 'bold' }
 status_title = { fg = 'blue', style = 'bold' }
 status_state = { fg = 'cyan', style = 'bold' }
 status_time_braces = { style = 'dim' }
+status_current_time = { fg = 'yellow', style = 'dim' }
+status_total_time = { fg = 'yellow', style = 'dim' }
 progress_bar = { bg = 'blue', style = 'bold' }
 error = { fg = 'red' }
 line  = ['║', '═', '╔', '╗', '╚', '╝']

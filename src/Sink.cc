@@ -94,11 +94,11 @@ class Sink::Impl {
             }
         };
         stop();
-        stride_ = width(streamParams.format) * streamParams.channels;
+        stride_ = width(streamParams.format) * streamParams.channelCount;
         spa_audio_info_raw info = {.format = format(streamParams.format),
             .flags = 0,
             .rate = static_cast<unsigned>(streamParams.rate),
-            .channels = streamParams.channels,
+            .channels = streamParams.channelCount,
             .position = {0}};
         auto* props =
             pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY,

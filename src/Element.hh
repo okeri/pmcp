@@ -16,6 +16,8 @@ enum class Element {
     PlaylistNumberSelected,
     PlaylistTime,
     PlaylistTimeSelected,
+    VolumeCaption,
+    VolumeValue,
     Disabled,
     Enabled,
     StatusTitle,

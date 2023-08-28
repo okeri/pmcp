@@ -114,9 +114,9 @@ void Theme::load(const char* path) {
         "frame", "selected_frame", "window_title", "playlist_entry",
         "playlist_selected", "playlist_playing", "playlist_playing_selected",
         "playlist_number", "playlist_number_selected", "playlist_time",
-        "playlist_time_selected", "disabled", "enabled", "status_title",
-        "status_state", "status_current_time", "status_total_time",
-        "status_time_braces", "progress_bar", "error"};
+        "playlist_time_selected", "volume_caption", "volume_value", "disabled",
+        "enabled", "status_title", "status_state", "status_current_time",
+        "status_total_time", "status_time_braces", "progress_bar", "error"};
 
     auto& self = instance();
     for (auto i = cast(Element::Default); i < cast(Element::Count); ++i) {
@@ -169,8 +169,8 @@ void Theme::load(const char* path) {
     inheritMaybe(Element::PlaylistTimeSelected, Element::PlaylistTime,
         Element::PlaylistSelected);
 
-    // remove dim for progress, cause we dont know how to proper handle it
-    // :)
+    // remove dim for progress, because we dont know how to proper handle it
+
     auto& progress = self.styles_[cast(Element::ProgressBar)];
     progress.decoration = static_cast<Decoration>(
         std::underlying_type_t<Decoration>(progress.decoration) &

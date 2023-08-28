@@ -163,7 +163,7 @@ void render(Status& status, Terminal::Plane& plane) {
     const auto& params = status.streamParams();
     const auto* current = stateEntry(state);
 
-    auto width = [](auto fmt) -> unsigned {
+    auto streamWidth = [](auto fmt) -> unsigned {
         switch (fmt) {
             case SampleFormat::U8:
             case SampleFormat::S8:
@@ -208,12 +208,22 @@ void render(Status& status, Terminal::Plane& plane) {
         if (params.format != SampleFormat::None) {
             plane << Element::Enabled << std::to_wstring(params.rate / 1000)
                   << Element::Disabled << L"kHz " << Element::Enabled
-                  << std::to_wstring(width(params.format)) << Element::Disabled
-                  << L"bit ";
+                  << std::to_wstring(streamWidth(params.format))
+                  << Element::Disabled << L"bit ";
         }
         plane << enabledElement(config.options.shuffle) << L"[SHUFFLE] "
               << enabledElement(config.options.repeat) << L"[REPEAT] "
               << enabledElement(config.options.next) << L"[NEXT]";
+
+        auto vol = status.streamParams().volume;
+        auto volWidth = 13;
+        auto start = plane.size().cols - volWidth;
+        if (start < MinWidth) {
+            return;
+        }
+        plane << Cursor(start, 0) << Element::VolumeCaption << L"volume: "
+              << Element::VolumeValue
+              << std::format(L"{: >3}%", static_cast<unsigned>(vol * 100));
     };
     plane << CSI::Clear;
     const auto& size = plane.size();

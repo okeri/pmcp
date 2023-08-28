@@ -2,5 +2,5 @@
 
 struct AudioBuffer {
     void* data;
-    unsigned frames;
+    unsigned frameCount;
 };

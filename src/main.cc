@@ -52,7 +52,11 @@ class App {
 
     DrawFlags handleAction(Action action) {
         auto setActive = [this](auto& widget) { activeContent_ = &widget; };
-        auto result = DrawFlags::All;
+        auto modVolume = [this](double perc) {
+            auto vol = player_.streamParams().volume;
+            player_.setVolume(std::clamp(vol * perc + vol, 0., 1.));
+        };
+        auto result = DrawFlags::Status;
         switch (action) {
             case Action::Play: {
                 auto queue = playview_->enter();
@@ -62,88 +66,99 @@ class App {
                 } else {
                     player_.clearQueue();
                 }
+                result = DrawFlags::All;
             } break;
 
             case Action::ToggleLists:
                 playview_->toggleLists();
+                result = DrawFlags::All;
                 break;
 
             case Action::Down:
                 activeContent_->down(1);
+                result = DrawFlags::All;
                 break;
 
             case Action::Up:
                 activeContent_->up(1);
+                result = DrawFlags::All;
                 break;
 
             case Action::PgDown:
                 activeContent_->down(pageSize_);
+                result = DrawFlags::All;
                 break;
 
             case Action::PgUp:
                 activeContent_->up(pageSize_);
+                result = DrawFlags::All;
                 break;
 
             case Action::Home:
                 activeContent_->home(true);
+                result = DrawFlags::All;
                 break;
 
             case Action::End:
                 activeContent_->end();
+                result = DrawFlags::All;
                 break;
 
             case Action::Stop:
                 player_.emit(Command::Stop);
                 playview_->markPlaying(player_.currentId());
+                result = DrawFlags::All;
                 break;
 
             case Action::Next:
                 player_.emit(Command::Next);
                 playview_->markPlaying(player_.currentId());
                 lyrics_->setSong(player_.currentSong());
+                result = DrawFlags::All;
                 break;
 
             case Action::Prev:
                 player_.emit(Command::Prev);
                 playview_->markPlaying(player_.currentId());
+                result = DrawFlags::All;
                 break;
 
             case Action::Pause:
                 player_.emit(Command::Pause);
-                result = DrawFlags::Status;
                 break;
 
             case Action::ToggleProgress:
                 config_.options.showProgress = !config_.options.showProgress;
                 resize();
+                result = DrawFlags::All;
                 break;
 
             case Action::ToggleShuffle:
                 config_.options.shuffle = !config_.options.shuffle;
                 player_.updateShuffleQueue();
-                result = DrawFlags::Status;
                 break;
 
             case Action::ToggleRepeat:
                 config_.options.repeat = !config_.options.repeat;
-                result = DrawFlags::Status;
                 break;
 
             case Action::ToggleNext:
                 config_.options.next = !config_.options.next;
-                result = DrawFlags::Status;
                 break;
 
             case Action::AddToPlaylist:
                 playview_->addToPlaylist();
+                result = DrawFlags::All;
                 break;
 
             case Action::Delete:
                 playview_->delSelected();
+                result = DrawFlags::All;
                 break;
 
             case Action::Clear:
                 playview_->clear();
+                result = DrawFlags::All;
                 break;
 
             case Action::ToggleLyrics:
@@ -154,20 +169,20 @@ class App {
                     setActive(lyrics_);
                     lyrics_->activate(true);
                 }
+                result = DrawFlags::All;
                 break;
 
             case Action::ResetView:
                 setActive(playview_);
+                result = DrawFlags::All;
                 break;
 
             case Action::Rew:
                 player_.rew();
-                result = DrawFlags::Status;
                 break;
 
             case Action::FF:
                 player_.ff();
-                result = DrawFlags::Status;
                 break;
 
             case Action::ToggleHelp:
@@ -176,10 +191,68 @@ class App {
                 } else {
                     setActive(help_);
                 }
+                result = DrawFlags::All;
+                break;
+
+            case Action::VolUp1:
+                modVolume(0.01);
+                break;
+
+            case Action::VolDn1:
+                modVolume(-0.01);
+                break;
+
+            case Action::VolUp5:
+                modVolume(0.05);
+                break;
+
+            case Action::VolDn5:
+                modVolume(-0.05);
+                break;
+
+            case Action::VolSet10:
+                player_.setVolume(0.1);
+                break;
+
+            case Action::VolSet20:
+                player_.setVolume(0.2);
+                break;
+
+            case Action::VolSet30:
+                player_.setVolume(0.3);
+                break;
+
+            case Action::VolSet40:
+                player_.setVolume(0.4);
+                break;
+
+            case Action::VolSet50:
+                player_.setVolume(0.5);
+                break;
+
+            case Action::VolSet60:
+                player_.setVolume(0.6);
+                break;
+
+            case Action::VolSet70:
+                player_.setVolume(0.7);
+                break;
+
+            case Action::VolSet80:
+                player_.setVolume(0.8);
+                break;
+
+            case Action::VolSet90:
+                player_.setVolume(0.9);
+                break;
+
+            case Action::VolSet100:
+                player_.setVolume(1.0);
                 break;
 
             case Action::Quit:
             case Action::Count:
+                result = DrawFlags::None;
                 break;
         }
         return result;

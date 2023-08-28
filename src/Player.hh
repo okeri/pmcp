@@ -1,7 +1,5 @@
 #pragma once
 
-#include <variant>
-
 #include "channel.hh"
 #include "Options.hh"
 #include "Playqueue.hh"
@@ -49,6 +47,7 @@ class Player {
     [[nodiscard]] std::optional<unsigned> currentId() const noexcept;
     [[nodiscard]] const wchar_t* currentSong() const noexcept;
 
+    void setVolume(double volume) noexcept;
     void clearQueue() noexcept;
     void updateShuffleQueue() noexcept;
     void ff() noexcept;

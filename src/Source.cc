@@ -21,7 +21,8 @@ class Source::Impl {
                 case SF_FORMAT_PCM_S8:
                 case SF_FORMAT_PCM_U8:
                     fillFunction_ = [this](const AudioBuffer& buffer) {
-                        return sndfile_->readRaw(buffer.data, buffer.frames) /
+                        return sndfile_->readRaw(
+                                   buffer.data, buffer.frameCount) /
                                sndfile_->channels();
                     };
                     break;
@@ -30,7 +31,7 @@ class Source::Impl {
                     fillFunction_ = [this](const AudioBuffer& buffer) {
                         return sndfile_->readf(
                             reinterpret_cast<short*>(buffer.data),
-                            buffer.frames);
+                            buffer.frameCount);
                     };
                     break;
 
@@ -38,7 +39,8 @@ class Source::Impl {
                 case SF_FORMAT_PCM_32:
                     fillFunction_ = [this](const AudioBuffer& buffer) {
                         return sndfile_->readf(
-                            reinterpret_cast<int*>(buffer.data), buffer.frames);
+                            reinterpret_cast<int*>(buffer.data),
+                            buffer.frameCount);
                     };
                     break;
 
@@ -46,7 +48,7 @@ class Source::Impl {
                     fillFunction_ = [this](const AudioBuffer& buffer) {
                         return sndfile_->readf(
                             reinterpret_cast<double*>(buffer.data),
-                            buffer.frames);
+                            buffer.frameCount);
                     };
                     break;
 
@@ -54,7 +56,7 @@ class Source::Impl {
                     fillFunction_ = [this](const AudioBuffer& buffer) {
                         return sndfile_->readf(
                             reinterpret_cast<float*>(buffer.data),
-                            buffer.frames);
+                            buffer.frameCount);
                     };
                     break;
             }

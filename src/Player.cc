@@ -1,14 +1,49 @@
 #include "Player.hh"
 
+template <class Pred>
+decltype(auto) bufferAction(
+    SampleFormat format, const AudioBuffer& buffer, Pred pred) {
+    switch (format) {
+        case SampleFormat::S8:
+            return pred(
+                reinterpret_cast<int8_t*>(buffer.data), buffer.frameCount);
+        case SampleFormat::U8:
+            return pred(
+                reinterpret_cast<uint8_t*>(buffer.data), buffer.frameCount);
+        case SampleFormat::S16:
+            return pred(
+                reinterpret_cast<int16_t*>(buffer.data), buffer.frameCount);
+        case SampleFormat::S24:
+        case SampleFormat::S32:
+            return pred(
+                reinterpret_cast<int32_t*>(buffer.data), buffer.frameCount);
+
+        case SampleFormat::F64:
+            return pred(
+                reinterpret_cast<double*>(buffer.data), buffer.frameCount);
+
+        default:
+            return pred(
+                reinterpret_cast<float*>(buffer.data), buffer.frameCount);
+    }
+}
+
 Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
     char* argv[]) noexcept :
     opts_(opts),
     state_(Stopped()),
-    params_({SampleFormat::None, 2, 44100}),
     sink_(
         [this, progressSender](const auto& buffer) {
             static unsigned long seconds = 0;
             auto result = decoder_.fill(buffer);
+            bufferAction(params_.format, buffer,
+                [this](auto* frames, unsigned frameCount) {
+                    for (auto i = 0u; i < frameCount * params_.channelCount;
+                         ++i) {
+                        frames[i] *= params_.volume;
+                    }
+                });
+
             framesDone_ += result;
 
             auto entry = currentEntry();
@@ -195,4 +230,8 @@ void Player::updateShuffleQueue() noexcept {
     if (queue_) {
         opts_.shuffle ? queue_->shuffle() : queue_->sort();
     }
+}
+
+void Player::setVolume(double volume) noexcept {
+    params_.volume = volume;
 }

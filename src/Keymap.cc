@@ -79,23 +79,47 @@ struct ActionDescription {
 };
 
 constexpr auto count = static_cast<unsigned>(Action::Count);
-static std::array<ActionDescription, count> descriptions{{{"quit",
-                                                              L"Quit program"},
+static std::array<ActionDescription, count> descriptions{{
+    {"quit", L"Quit program"},
     {"go", L"Play a playlist entry or file or enter to directory"},
-    {"up", L"Move up"}, {"down", L"Move down"}, {"pgup", L"Page up"},
-    {"pgdown", L"Page down"}, {"home", L"Home"}, {"end", L"End"},
-    {"stop", L"Stop playing"}, {"next", L"Next song"},
-    {"prev", L"Previous song"}, {"pause", L"Toggle pause"},
+    {"up", L"Move up"},
+    {"down", L"Move down"},
+    {"pgup", L"Page up"},
+    {"pgdown", L"Page down"},
+    {"home", L"Home"},
+    {"end", L"End"},
+    {"stop", L"Stop playing"},
+    {"next", L"Next song"},
+    {"prev", L"Previous song"},
+    {"pause", L"Toggle pause"},
     {"toggle", L"Switch between playlists"},
     {"toggle_progress", L"Toggle progress bar display"},
     {"toggle_shuffle", L"Toggle Shuffle option"},
     {"toggle_repeat", L"Toggle Repeat option"},
     {"toggle_next", L"Toggle Next option"},
-    {"lyrics", L"Show/hide lyrics display"}, {"help", L"Show/hide this help"},
+    {"lyrics", L"Show/hide lyrics display"},
+    {"help", L"Show/hide this help"},
     {"add_to_playlist", L"Add file/directory to playlist"},
     {"delete", L"Remove selected item from playlist"},
-    {"clear", L"Clear playlist"}, {"ff", L"Forward"}, {"rew", L"Rewind"},
-    {"reset_view", L"Exit to playlists view"}}};
+    {"clear", L"Clear playlist"},
+    {"ff", L"Forward"},
+    {"rew", L"Rewind"},
+    {"reset_view", L"Exit to playlists view"},
+    {"volup1", L"Volume up 1%"},
+    {"voldown1", L"Volume down 1%"},
+    {"volup5", L"Volume up 5%"},
+    {"voldown5", L"Volume down 5%"},
+    {"volset10", L"Set volume to 10%"},
+    {"volset20", L"Set volume to 20%"},
+    {"volset30", L"Set volume to 30%"},
+    {"volset40", L"Set volume to 40%"},
+    {"volset50", L"Set volume to 50%"},
+    {"volset60", L"Set volume to 60%"},
+    {"volset70", L"Set volume to 70%"},
+    {"volset80", L"Set volume to 80%"},
+    {"volset90", L"Set volume to 90%"},
+    {"volset100", L"Set volume to 100%"},
+}};
 
 }  // namespace
 
@@ -126,7 +150,22 @@ Keymap::Keymap(const std::string& path) :
         {static_cast<input::Key>('C'), Action::Clear},
         {static_cast<input::Key>('x') | input::Key::CtrlBase,
             Action::ResetView},
-        {input::Esc, Action::ResetView}}) {
+        {input::Esc, Action::ResetView},
+        {static_cast<input::Key>('>'), Action::VolUp1},
+        {static_cast<input::Key>('<'), Action::VolDn1},
+        {static_cast<input::Key>('.'), Action::VolUp5},
+        {static_cast<input::Key>(','), Action::VolDn5},
+        {static_cast<input::Key>('1') | input::Key::AltBase, Action::VolSet10},
+        {static_cast<input::Key>('2') | input::Key::AltBase, Action::VolSet20},
+        {static_cast<input::Key>('3') | input::Key::AltBase, Action::VolSet30},
+        {static_cast<input::Key>('4') | input::Key::AltBase, Action::VolSet40},
+        {static_cast<input::Key>('5') | input::Key::AltBase, Action::VolSet50},
+        {static_cast<input::Key>('6') | input::Key::AltBase, Action::VolSet60},
+        {static_cast<input::Key>('7') | input::Key::AltBase, Action::VolSet70},
+        {static_cast<input::Key>('8') | input::Key::AltBase, Action::VolSet80},
+        {static_cast<input::Key>('9') | input::Key::AltBase, Action::VolSet90},
+        {static_cast<input::Key>('0') | input::Key::AltBase,
+            Action::VolSet100}}) {
     auto parseKey = [](std::wstring_view strKey) {
         auto mods = input::Null;
         auto result = input::Null;
