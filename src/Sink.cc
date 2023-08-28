@@ -1,5 +1,6 @@
 #pragma GCC diagnostic ignored "-Wpedantic"
 #include <pipewire/pipewire.h>
+#include <pipewire/version.h>
 #include <spa/param/audio/format-utils.h>
 #pragma GCC diagnostic warning "-Wpedantic"
 
@@ -112,7 +113,11 @@ class Sink::Impl {
                 auto buf = buffer->buffer;
                 auto maxFrames = static_cast<uint64_t>(buf->datas[0].maxsize) /
                                  self->stride_;
+#if PW_CHECK_VERSION(0, 3, 49)
                 auto frames = std::min(buffer->requested, maxFrames);
+#else
+                auto frames = maxFrames;
+#endif
                 AudioBuffer audioBuffer{
                     buf->datas[0].data, static_cast<unsigned>(frames)};
                 buf->datas[0].chunk->offset = 0;
