@@ -9,7 +9,7 @@ Heavily inspired by [MOC](http://moc.daper.net), but much less feature-rich :)
 [pipewire](https://pipewire.org)  
 [taglib](https://taglib.org)  
 [libsndfile](https://libsndfile.github.io/libsndfile)  
-[unistring](https://github.com/skystrife/cpptoml)  
+[libglyr](https://github.com/sahib/glyr)(optional)  
 
 
 ## build dependencies
