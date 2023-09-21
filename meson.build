@@ -37,7 +37,6 @@ if not cc.has_header('cpptoml.h')
 endif
 
 deps = [
-  cc.find_library('unistring'),
   cc.find_library('stdc++fs'),
   dependency('sndfile'),
   dependency('libpipewire-0.3'),
