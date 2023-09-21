@@ -68,8 +68,9 @@ Config::Config() {
             root.get<std::string>("theme").value_or("default_theme.toml"));
         keymapPath = transformFullPath(
             root.get<std::string>("keymap").value_or("keymap.toml"));
-        lyricsPath = transformFullPath(
-            root.get<std::string>("lyrics_dir").value_or("lyrics"));
+        lyricsPath =
+            root.get<std::string>("lyrics_dir").value_or(confPath / "lyrics");
+        tildaFixup(lyricsPath);
         root.enumArray("allow_extensions",
             [this](const std::string& value) { whiteList.insert(value); });
     } else {
