@@ -10,6 +10,7 @@ struct Config {
     std::string themePath;
     std::string keymapPath;
     std::string playlistPath;
+    std::string lyricsPath;
     std::string socketPath;
     std::unordered_set<std::string> whiteList;
     Options options;

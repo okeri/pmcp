@@ -7,6 +7,8 @@
 
 namespace fs = std::filesystem;
 
+namespace {
+
 std::string defaultHome() {
     const auto* home = getenv("HOME");  // NOLINT:concurrency-mt-unsafe
     if (home == nullptr) {
@@ -35,30 +37,43 @@ std::string sockPath() {
     }
 }
 
+}  // namespace
+
 Config::Config() {
     auto confPath = fs::path(configPath());
     auto path = (confPath / "config.toml").string();
+
+    auto tildaFixup = [](std::string& path) {
+        if (auto tilda = path.find('~'); tilda != std::string::npos) {
+            path.replace(tilda, 1, defaultHome());
+        }
+    };
+
     if (fs::exists(path)) {
         auto root = Toml(path);
         home = root.get<std::string>("music_dir").value_or(defaultHome());
-        if (auto tilda = home.find('~'); tilda != std::string::npos) {
-            home.replace(tilda, 1, defaultHome());
-        }
+        tildaFixup(home);
 
-        auto transformFullPath = [&confPath](const fs::path& p) {
+        auto transformFullPath = [&confPath, &tildaFixup](const fs::path& p) {
             auto full = confPath / p;
             if (fs::exists(full)) {
                 return full.string();
             }
-            return p.string();
+            auto result = p.string();
+            tildaFixup(result);
+            return result;
         };
+
         themePath = transformFullPath(
             root.get<std::string>("theme").value_or("default_theme.toml"));
         keymapPath = transformFullPath(
             root.get<std::string>("keymap").value_or("keymap.toml"));
-
+        lyricsPath = transformFullPath(
+            root.get<std::string>("lyrics_dir").value_or("lyrics"));
         root.enumArray("allow_extensions",
             [this](const std::string& value) { whiteList.insert(value); });
+    } else {
+        lyricsPath = (confPath / "lyrics").string();
     }
     auto optsPath = (confPath / "options.toml").string();
     playlistPath = (confPath / "playlist.m3u").string();
@@ -76,6 +91,12 @@ Config::Config() {
         setBoolMaybe(options.shuffle, "shuffle");
         setBoolMaybe(options.repeat, "repeat");
         setBoolMaybe(options.next, "next");
+    }
+    if (!fs::exists(lyricsPath)) {
+        if (!fs::create_directory(lyricsPath)) {
+            throw std::runtime_error(
+                std::string("cannot create path: ") + lyricsPath);
+        }
     }
 }
 

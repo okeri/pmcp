@@ -296,7 +296,9 @@ void render(Help& help, Terminal::Plane& plane) {
     for (auto itemIndex = win.start, yCursor = 1u; itemIndex < win.end;
          ++itemIndex, ++yCursor) {
         plane << Cursor(1, yCursor) << data[itemIndex].first
-              << Cursor(20, yCursor) << data[itemIndex].second;
+              << Cursor(20, yCursor)
+              << std::wstring_view(data[itemIndex].second)
+                     .substr(0, size.cols - 21);
     }
     plane.box(L"Key Bindings", Element::Title, {0, 0, size.cols, size.rows},
         Element::Frame);
@@ -307,9 +309,14 @@ void render(Lyrics& lyrics, Terminal::Plane& plane) {
     const auto& size = plane.size();
     plane << CSI::Clear;
     auto win = lyrics.scroll(1, size.rows - 1, data.size());
-    for (auto itemIndex = win.start, yCursor = 1u; itemIndex < win.end;
+    auto maxWidth = size.cols - 2;
+    auto yCursor =
+        size.rows - 2 > data.size() ? (size.rows - 2 - data.size()) / 2 + 1 : 1;
+    for (auto itemIndex = win.start; itemIndex < win.end;
          ++itemIndex, ++yCursor) {
-        plane << Cursor(1, yCursor) << data[itemIndex];
+        auto textLine = data[itemIndex].substr(0, maxWidth);
+        plane << Cursor(1 + (maxWidth - textLine.length()) / 2, yCursor)
+              << textLine;
     }
     plane.box(lyrics.title(), Element::Title, {0, 0, size.cols, size.rows},
         Element::Frame);

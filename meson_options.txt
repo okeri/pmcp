@@ -1,1 +1,2 @@
 option('ctl', type : 'feature', value : 'enabled')
+option('glyr', type : 'feature', value : 'auto')

@@ -103,6 +103,7 @@ void Playlist::end() noexcept {
 
 void Playlist::clear() noexcept {
     selected_ = std::nullopt;
+    playing_ = std::nullopt;
     items_.clear();
 }
 

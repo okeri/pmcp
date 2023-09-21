@@ -41,13 +41,22 @@ class App {
         keymap_(keymap),
         planes_({term().createPlane({0, 0, 0, 0}),
             term().createPlane({0, 0, 0, 0})}),
-        player_(std::move(sender), config_.options, argc, argv),
+        player_(sender, config_.options, argc, argv),
         playview_(config_),
         help_(keymap),
+        lyrics_(std::move(sender), config_.lyricsPath),
         status_(config_, player_.state(), player_.streamParams()),
         activeContent_(&playview_) {
         resize();
         render(DrawFlags::All);
+    }
+
+    void updateLyricsSong(const Entry* entry) {
+        if (entry) {
+            lyrics_->setSong(entry->title);
+        } else {
+            lyrics_->setSong(L"");
+        }
     }
 
     DrawFlags handleAction(Action action) {
@@ -56,6 +65,7 @@ class App {
             auto vol = player_.streamParams().volume;
             player_.setVolume(std::clamp(vol * perc + vol, 0., 1.));
         };
+
         auto result = DrawFlags::Status;
         switch (action) {
             case Action::Play: {
@@ -63,6 +73,7 @@ class App {
                 if (queue) {
                     player_.emit(Command::Play, std::move(queue));
                     playview_->markPlaying(player_.currentId());
+                    updateLyricsSong(player_.currentEntry());
                 } else {
                     player_.clearQueue();
                 }
@@ -113,7 +124,7 @@ class App {
             case Action::Next:
                 player_.emit(Command::Next);
                 playview_->markPlaying(player_.currentId());
-                lyrics_->setSong(player_.currentSong());
+                updateLyricsSong(player_.currentEntry());
                 result = DrawFlags::All;
                 break;
 
@@ -166,8 +177,15 @@ class App {
                     setActive(playview_);
                     lyrics_->activate(false);
                 } else {
-                    setActive(lyrics_);
+                    if (player_.currentEntry() == nullptr) {
+                        auto& pl =
+                            playview_->operator[](playview_->playlistActive());
+                        if (auto sel = pl.selectedIndex()) {
+                            lyrics_->setSong(pl[*sel].title);
+                        }
+                    }
                     lyrics_->activate(true);
+                    setActive(lyrics_);
                 }
                 result = DrawFlags::All;
                 break;
@@ -277,7 +295,7 @@ class App {
                         status_->setProgress(0);
                         player_.emit(Command::Next);
                         playview_->markPlaying(player_.currentId());
-                        lyrics_->setSong(player_.currentSong());
+                        updateLyricsSong(player_.currentEntry());
                     }
                 } else if constexpr (std::is_same<Type, Action>()) {
                     drawFlags = handleAction(value);

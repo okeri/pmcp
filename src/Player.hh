@@ -45,7 +45,6 @@ class Player {
     [[nodiscard]] const StreamParams& streamParams() const noexcept;
     [[nodiscard]] const Entry* currentEntry() const noexcept;
     [[nodiscard]] std::optional<unsigned> currentId() const noexcept;
-    [[nodiscard]] const wchar_t* currentSong() const noexcept;
 
     void setVolume(double volume) noexcept;
     void clearQueue() noexcept;

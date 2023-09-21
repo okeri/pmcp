@@ -44,6 +44,12 @@ deps = [
   dependency('taglib'),
 ]
 
+glyr = dependency('libglyr', required: get_option('glyr'))
+if glyr.found()
+  add_project_arguments('-DENABLE_GLYR', language: 'cpp')
+  deps += glyr
+endif
+
 executable('pmcp', files, dependencies: deps)
 
 if get_option('ctl').enabled()

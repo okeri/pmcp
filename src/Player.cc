@@ -192,14 +192,6 @@ std::optional<unsigned> Player::currentId() const noexcept {
     return {};
 }
 
-const wchar_t* Player::currentSong() const noexcept {
-    const auto* entry = currentEntry();
-    if (entry) {
-        return entry->title.c_str();
-    }
-    return nullptr;
-}
-
 bool Player::stopped() const noexcept {
     return state_.index() == 0;
 }
