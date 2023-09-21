@@ -157,6 +157,10 @@ void Lyrics::loadLyrics() {
         text_ = std::vector(1, std::wstring(err));
     };
 
+    if (loaded_) {
+        return;
+    }
+
     if (title_.empty()) {
         error(L"Missing track info");
         return;
@@ -164,6 +168,7 @@ void Lyrics::loadLyrics() {
 
     text_ = local::load(path_, title_);
     if (!text_.empty()) {
+        loaded_ = true;
         return;
     }
 #ifdef ENABLE_GLYR
