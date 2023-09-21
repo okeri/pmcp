@@ -109,10 +109,10 @@ std::vector<std::wstring> load(
     const std::wstring& lyricsPath, const std::wstring& song) {
     auto path = fs::path(lyricsPath) / (song + L".txt");
 
-    if (auto input = std::basic_ifstream<wchar_t>(path.string())) {
-        std::wstring content((std::istreambuf_iterator<wchar_t>(input)),
-            std::istreambuf_iterator<wchar_t>());
-        return render::simpleN(content);
+    if (auto input = std::ifstream(path.string())) {
+        std::string content((std::istreambuf_iterator<char>(input)),
+            std::istreambuf_iterator<char>());
+        return render::simpleN(utf8::convert(content));
     }
     return {};
 }
@@ -120,9 +120,9 @@ std::vector<std::wstring> load(
 void save(const std::wstring& lyricsPath, const std::wstring& song,
     const std::vector<std::wstring>& data) {
     auto path = fs::path(lyricsPath) / (song + L".txt");
-    if (auto output = std::basic_ofstream<wchar_t>(path.string())) {
+    if (auto output = std::ofstream(path.string())) {
         for (const auto& line : data) {
-            output << line << std::endl;
+            output << utf8::convert(line) << std::endl;
         }
     }
 }
@@ -186,6 +186,7 @@ void Lyrics::loadLyrics() {
         if (lyrics) {
             text_ = render::simpleN(utf8::convert(lyrics.value()));
             local::save(path_, title_, text_);
+            loaded_ = true;
         } else {
             error(L"No lyrics found");
         }
