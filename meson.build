@@ -49,8 +49,10 @@ if glyr.found()
   deps += glyr
 endif
 
-executable('pmcp', files, dependencies: deps)
+executable('pmcp', files, dependencies: deps, install: true)
 
 if get_option('ctl').enabled()
-  executable('pmcpctl', ['src/ctl.cc'])
+  executable('pmcpctl', ['src/ctl.cc'], install: true)
 endif
+
+install_data(['share/config.toml','share/default_theme.toml','share/keymap.toml'])

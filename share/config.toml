@@ -1,6 +1,10 @@
-music_dir = '~/music'
-visualization = false
-show_progress = true
-read_tags = true
-allow_extensions = ['.flac']
+# default music dir
+music_dir = '~'
+# default lyrics dir
+lyrics_dir = "lyrics"
+# allowed extensions. other will be filtered
+allow_extensions = ['.wav', '.flac', '.alac', '.aiff', '.mp3', '.aac', '.ogg', '.m4a', '.wma']
+# theme file
 theme = 'default_theme.toml'
+# keymap file
+keymap = "keymap.toml"
