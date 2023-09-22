@@ -119,10 +119,36 @@ void Theme::load(const char* path) {
         "status_total_time", "status_time_braces", "progress_bar", "error"};
 
     auto& self = instance();
-    for (auto i = cast(Element::Default); i < cast(Element::Count); ++i) {
-        if (auto entry = root[elementNames[i]]) {
-            self.styles_[i] = parseStyle(*entry);
+    if (root) {
+        for (auto i = cast(Element::Default); i < cast(Element::Count); ++i) {
+            if (auto entry = root[elementNames[i]]) {
+                self.styles_[i] = parseStyle(*entry);
+            }
         }
+    } else {
+        self.styles_ = {{{}, {}, Decoration::None}, {{}, {}, Decoration::Dim},
+            {static_cast<unsigned char>(4), {}, Decoration::None},
+            {{}, {}, Decoration::Dim}, {{}, {}, Decoration::None},
+            {{}, static_cast<unsigned char>(4), Decoration::Bold},
+            {static_cast<unsigned char>(3), {},
+                Decoration::Bold | Decoration::Underline},
+            {{}, {}, Decoration::None},
+            {static_cast<unsigned char>(6), {}, Decoration::Dim},
+            {static_cast<unsigned char>(6), static_cast<unsigned char>(4),
+                Decoration::None},
+            {static_cast<unsigned char>(6), {}, Decoration::Dim},
+            {static_cast<unsigned char>(6), static_cast<unsigned char>(4),
+                Decoration::None},
+            {{}, {}, Decoration::Dim},
+            {static_cast<unsigned char>(3), {}, Decoration::Dim},
+            {{}, {}, Decoration::Dim}, {{}, {}, Decoration::Bold},
+            {static_cast<unsigned char>(4), {}, Decoration::Bold},
+            {static_cast<unsigned char>(6), {}, Decoration::Bold},
+            {static_cast<unsigned char>(3), {}, Decoration::Dim},
+            {static_cast<unsigned char>(3), {}, Decoration::Dim},
+            {{}, {}, Decoration::Dim},
+            {{}, static_cast<unsigned char>(4), Decoration::Bold},
+            {static_cast<unsigned char>(1), {}, Decoration::None}};
     }
 
     if (auto line = root["line"]) {
