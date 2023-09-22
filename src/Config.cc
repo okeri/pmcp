@@ -54,28 +54,37 @@ Config::Config() {
         home = root.get<std::string>("music_dir").value_or(defaultHome());
         tildaFixup(home);
 
-        auto transformFullPath = [&confPath, &tildaFixup](const fs::path& p) {
-            auto full = confPath / p;
-            if (fs::exists(full)) {
-                return full.string();
-            }
-            auto result = p.string();
-            tildaFixup(result);
-            return result;
-        };
-
-        themePath = transformFullPath(
-            root.get<std::string>("theme").value_or("default_theme.toml"));
-        keymapPath = transformFullPath(
-            root.get<std::string>("keymap").value_or("keymap.toml"));
-        lyricsPath =
-            root.get<std::string>("lyrics_dir").value_or(confPath / "lyrics");
+        themePath = root.get<std::string>("theme").value_or(themePath);
+        keymapPath = root.get<std::string>("keymap").value_or(keymapPath);
+        lyricsPath = root.get<std::string>("lyrics_dir").value_or(lyricsPath);
         tildaFixup(lyricsPath);
         root.enumArray("allow_extensions",
             [this](const std::string& value) { whiteList.insert(value); });
     } else {
+        if (!fs::exists(confPath)) {
+            if (!fs::create_directory(confPath)) {
+                throw std::runtime_error(
+                    "cannot create path: " + confPath.string());
+            }
+        }
+        home = defaultHome();
+        tildaFixup(home);
         lyricsPath = (confPath / "lyrics").string();
     }
+
+    auto searchFullPath = [&confPath, &tildaFixup](const fs::path& p) {
+        auto full = confPath / p;
+        if (fs::exists(full)) {
+            return full.string();
+        }
+        auto result = p.string();
+        tildaFixup(result);
+        return result;
+    };
+
+    themePath = searchFullPath(themePath);
+    keymapPath = searchFullPath(keymapPath);
+
     auto optsPath = (confPath / "options.toml").string();
     playlistPath = (confPath / "playlist.m3u").string();
     socketPath = sockPath();
@@ -95,8 +104,7 @@ Config::Config() {
     }
     if (!fs::exists(lyricsPath)) {
         if (!fs::create_directory(lyricsPath)) {
-            throw std::runtime_error(
-                std::string("cannot create path: ") + lyricsPath);
+            throw std::runtime_error("cannot create path: " + lyricsPath);
         }
     }
 }

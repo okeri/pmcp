@@ -7,10 +7,10 @@
 
 struct Config {
     std::string home;
-    std::string themePath;
-    std::string keymapPath;
+    std::string themePath{"default_theme.toml"};
+    std::string keymapPath{"keymap.toml"};
+    std::string lyricsPath{"lyrics"};
     std::string playlistPath;
-    std::string lyricsPath;
     std::string socketPath;
     std::unordered_set<std::string> whiteList;
     Options options;
