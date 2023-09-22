@@ -156,7 +156,9 @@ void Lyrics::loadLyrics() {
     auto error = [this](const wchar_t* err) {
         text_ = std::vector(1, std::wstring(err));
     };
-
+#ifdef ENABLE_GLYR
+    std::unique_lock lock(mutex_);
+#endif
     if (loaded_) {
         return;
     }
@@ -174,7 +176,8 @@ void Lyrics::loadLyrics() {
 #ifdef ENABLE_GLYR
     static glyr::Fetcher fetcher;
     error(L"Loading...");
-    std::thread([this, &error]() {
+    lock.unlock();
+    std::thread([this]() {
         std::vector<std::string> components;
         render::split(std::string_view(utf8::convert(title_)),
             std::string(" - "), [&components](const auto* begin, size_t count) {
@@ -183,12 +186,13 @@ void Lyrics::loadLyrics() {
 
         auto lyrics =
             fetcher.fetchLyrics(components[0].c_str(), components[1].c_str());
+        std::lock_guard lock(mutex_);
         if (lyrics) {
             text_ = render::simpleN(utf8::convert(lyrics.value()));
             local::save(path_, title_, text_);
             loaded_ = true;
         } else {
-            error(L"No lyrics found");
+            text_ = std::vector(1, std::wstring(L"No lyrics found"));
         }
         sender_.send(input::Key::Resize);
     }).detach();

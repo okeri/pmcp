@@ -3,6 +3,10 @@
 #include <vector>
 #include <string>
 
+#ifdef ENABLE_GLYR
+#include <mutex>
+#endif
+
 #include "channel.hh"
 #include "Msg.hh"
 #include "Scrollable.hh"
@@ -12,7 +16,9 @@ class Lyrics final : public ScrollableView {
     std::wstring path_;
     std::vector<std::wstring> text_;
     std::wstring title_;
-
+#ifdef ENABLE_GLYR
+    std::mutex mutex_;
+#endif
     bool active_{false};
     bool loaded_{false};
 
