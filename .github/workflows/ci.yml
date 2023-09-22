@@ -22,6 +22,6 @@ jobs:
       - name: Configure and build the app
         run: |
           meson build
-          ninja -C build
+          meson compile -C build
         env:
           CXX: g++-13
