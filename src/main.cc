@@ -35,8 +35,8 @@ class App {
     }
 
   public:
-    explicit App(Sender<Msg> sender, Config& config, const Keymap& keymap,
-        int argc, char* argv[]) :
+    App(Sender<Msg> sender, Config& config, const Keymap& keymap, int argc,
+        char* argv[]) :
         config_(config),
         keymap_(keymap),
         planes_({term().createPlane({0, 0, 0, 0}),

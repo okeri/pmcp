@@ -13,7 +13,7 @@ class Sink {
   public:
     using BufferFillRoutine = std::function<unsigned(const AudioBuffer&)>;
 
-    explicit Sink(Sink::BufferFillRoutine, int argc, char* argv[]) noexcept;
+    Sink(Sink::BufferFillRoutine, int argc, char* argv[]) noexcept;
     Sink(const Sink&) = delete;
     Sink(Sink&&) = delete;
     Sink& operator=(const Sink&) = delete;

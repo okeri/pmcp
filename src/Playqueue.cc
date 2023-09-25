@@ -40,7 +40,7 @@ class HoldIndex {
     const std::vector<Entry>& items_;
 
   public:
-    explicit HoldIndex(const std::vector<Entry>& items, unsigned& index) :
+    HoldIndex(const std::vector<Entry>& items, unsigned& index) :
         id_(items[index].id), index_(index), items_(items) {
     }
 
