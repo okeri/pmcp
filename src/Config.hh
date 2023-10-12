@@ -9,7 +9,7 @@ struct Config {
     std::string home;
     std::string themePath{"default_theme.toml"};
     std::string keymapPath{"keymap.toml"};
-    std::string lyricsPath{"lyrics"};
+    std::string lyricsPath;
     std::string playlistPath;
     std::string socketPath;
     std::unordered_set<std::string> whiteList;

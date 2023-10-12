@@ -42,6 +42,7 @@ std::string sockPath() {
 Config::Config() {
     auto confPath = fs::path(configPath());
     auto path = (confPath / "config.toml").string();
+    lyricsPath = (confPath / "lyrics").string();
 
     auto tildaFixup = [](std::string& path) {
         if (auto tilda = path.find('~'); tilda != std::string::npos) {
@@ -69,7 +70,6 @@ Config::Config() {
         }
         home = defaultHome();
         tildaFixup(home);
-        lyricsPath = (confPath / "lyrics").string();
     }
 
     auto searchFullPath = [&confPath, &tildaFixup](const fs::path& p) {
