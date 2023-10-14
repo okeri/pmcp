@@ -318,26 +318,34 @@ class Terminal::Plane::Impl {
             caption = caption.substr(0, maxlen);
         }
 
-        auto len = Cell::width(caption);
-        auto start = (maxlen - len) / 2 + pos.left;
-        cells_[cursor] = Theme::lineChar(Theme::LineType::TopLeft);
         cells_[cursor].setStyle(lineStyle);
-        auto end = calcCursor(start > 0 ? start - 1 : 0, pos.top);
-        for (++cursor; cursor < end; ++cursor) {
-            cells_[cursor] = Theme::lineChar(Theme::LineType::Horisontal);
-        }
-
+        cells_[cursor] = Theme::lineChar(Theme::LineType::TopLeft);
         auto right = pos.left + pos.cols;
         auto bottom = pos.top + pos.rows;
-        cells_[cursor] = L' ';
-        cells_[++cursor].setStyle(captionStyle);
-        cursor = putText(caption, cursor);
-        cells_[cursor] = L' ';
-        cells_[cursor++].setStyle(lineStyle);
 
-        end = calcCursor(right - 1, pos.top);
-        for (; cursor < end; ++cursor) {
-            cells_[cursor] = Theme::lineChar(Theme::LineType::Horisontal);
+        if (!caption.empty()) {
+            auto len = Cell::width(caption);
+            auto start = (maxlen - len) / 2 + pos.left;
+            auto end = calcCursor(start > 0 ? start - 1 : 0, pos.top);
+            for (++cursor; cursor < end; ++cursor) {
+                cells_[cursor] = Theme::lineChar(Theme::LineType::Horisontal);
+            }
+
+            cells_[cursor] = L' ';
+            cells_[++cursor].setStyle(captionStyle);
+            cursor = putText(caption, cursor);
+            cells_[cursor] = L' ';
+            cells_[cursor++].setStyle(lineStyle);
+
+            end = calcCursor(right - 1, pos.top);
+            for (; cursor < end; ++cursor) {
+                cells_[cursor] = Theme::lineChar(Theme::LineType::Horisontal);
+            }
+        } else {
+            for (++cursor; cursor < calcCursor(pos.cols - 1, pos.top);
+                 ++cursor) {
+                cells_[cursor] = Theme::lineChar(Theme::LineType::Horisontal);
+            }
         }
         cells_[cursor] = Theme::lineChar(Theme::LineType::TopRight);
 
@@ -353,7 +361,7 @@ class Terminal::Plane::Impl {
         cursor = calcCursor(pos.left, bottom - 1);
         cells_[cursor].setStyle(lineStyle);
         cells_[cursor] = Theme::lineChar(Theme::LineType::BottomLeft);
-        end = calcCursor(right - 1, bottom - 1);
+        auto end = calcCursor(right - 1, bottom - 1);
         for (++cursor; cursor < end; ++cursor) {
             cells_[cursor] = Theme::lineChar(Theme::LineType::Horisontal);
         }
