@@ -44,7 +44,7 @@ class App {
         player_(sender, config_.options, argc, argv),
         playview_(config_),
         help_(keymap),
-        lyrics_(std::move(sender), config_.lyricsPath),
+        lyrics_(std::move(sender), config_.lyricsProvider, config_.lyricsPath),
         status_(config_, player_.state(), player_.streamParams()),
         activeContent_(&playview_) {
         resize();

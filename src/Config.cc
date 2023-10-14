@@ -58,6 +58,8 @@ Config::Config() {
         themePath = root.get<std::string>("theme").value_or(themePath);
         keymapPath = root.get<std::string>("keymap").value_or(keymapPath);
         lyricsPath = root.get<std::string>("lyrics_dir").value_or(lyricsPath);
+        lyricsProvider =
+            root.get<std::string>("lyrics_provider").value_or(lyricsProvider);
         tildaFixup(lyricsPath);
         root.enumArray("allow_extensions",
             [this](const std::string& value) { whiteList.insert(value); });

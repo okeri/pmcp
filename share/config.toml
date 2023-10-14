@@ -1,10 +1,18 @@
 # default music dir
 music_dir = '~'
+
 # default lyrics dir
-lyrics_dir = "lyrics"
+# lyrics_dir = "lyrics"
+
+# see glyr help for available values
+# lyrics_provider = ""
+
 # allowed extensions. other will be filtered
 allow_extensions = ['.wav', '.flac', '.alac', '.aiff', '.mp3', '.aac', '.ogg', '.m4a', '.wma']
+
 # theme file
 theme = 'default_theme.toml'
+
 # keymap file
 keymap = "keymap.toml"
+

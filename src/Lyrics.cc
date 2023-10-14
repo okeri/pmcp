@@ -43,10 +43,13 @@ class Fetcher {
     Fetcher& operator=(Fetcher&&) = delete;
 
     std::optional<std::string> fetchLyrics(
-        const char* artist, const char* title) {
+        const char* provider, const char* artist, const char* title) {
         Query query;
         glyr_opt_title(query, title);
         glyr_opt_artist(query, artist);
+        if (provider != nullptr) {
+            glyr_opt_from(query, provider);
+        }
         glyr_opt_type(query, GLYR_GET_LYRICS);
 
         auto* cache = glyr_get(query, nullptr, nullptr);
@@ -129,8 +132,11 @@ void save(const std::wstring& lyricsPath, const std::wstring& song,
 
 }  // namespace local
 
-Lyrics::Lyrics(Sender<Msg> progressSender, const std::string& path) :
-    sender_(std::move(progressSender)), path_(utf8::convert(path)) {
+Lyrics::Lyrics(
+    Sender<Msg> progressSender, std::string provider, const std::string& path) :
+    sender_(std::move(progressSender)),
+    provider_(std::move(provider)),
+    path_(utf8::convert(path)) {
 }
 
 const std::vector<std::wstring>& Lyrics::text() const noexcept {
@@ -185,7 +191,8 @@ void Lyrics::loadLyrics() {
             });
 
         auto lyrics =
-            fetcher.fetchLyrics(components[0].c_str(), components[1].c_str());
+            fetcher.fetchLyrics(provider_.empty() ? nullptr : provider_.c_str(),
+                components[0].c_str(), components[1].c_str());
         std::lock_guard lock(mutex_);
         if (lyrics) {
             text_ = render::simpleN(utf8::convert(lyrics.value()));

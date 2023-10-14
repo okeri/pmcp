@@ -13,9 +13,11 @@
 
 class Lyrics final : public ScrollableView {
     Sender<Msg> sender_;
+    std::string provider_;
     std::wstring path_;
     std::vector<std::wstring> text_;
     std::wstring title_;
+
 #ifdef ENABLE_GLYR
     std::mutex mutex_;
 #endif
@@ -25,7 +27,8 @@ class Lyrics final : public ScrollableView {
     void loadLyrics();
 
   public:
-    Lyrics(Sender<Msg> progressSender, const std::string& path);
+    Lyrics(Sender<Msg> progressSender, std::string provider,
+        const std::string& path);
     [[nodiscard]] const std::vector<std::wstring>& text() const noexcept;
     void setSong(const std::wstring& title) noexcept;
     void activate(bool act) noexcept;
