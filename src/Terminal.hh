@@ -68,6 +68,8 @@ class Terminal {
     Plane createPlane(const Bounds& pos);
     void render() const noexcept;
     [[nodiscard]] Size size() const noexcept;
+
+    static unsigned width(std::wstring_view str) noexcept;
 };
 
 Terminal& term();

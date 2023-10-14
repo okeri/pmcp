@@ -125,7 +125,7 @@ void render(Playlist& pl, Terminal::Plane& plane, const wchar_t* caption,
             pl[itemIndex].duration ? std::max(numWidth(minutes), 2) : 0u;
 
         auto maxElementLen = cols - numLen - minutesLen - 10;
-        if (element.length() < maxElementLen) {
+        if (Terminal::width(element) < maxElementLen) {
             plane << element;
         } else {
             plane << element.substr(0, maxElementLen);
@@ -256,17 +256,16 @@ void render(Status& status, Terminal::Plane& plane) {
                 plane << L' ';
             }
 
-            auto intitle =
-                std::min(static_cast<unsigned>(current->title.length()),
-                    progress > startOffset ? progress - startOffset : 0);
+            auto intitle = std::min(Terminal::width(current->title),
+                progress > startOffset ? progress - startOffset : 0);
             if (intitle != 0) {
                 plane << std::wstring_view(current->title).substr(0, intitle);
             }
             plane << Element::Default
                   << std::wstring_view(current->title).substr(intitle);
-            if (progress > startOffset + current->title.length()) {
+            if (progress > startOffset + Terminal::width(current->title)) {
                 plane << Element::ProgressBar << CSI::Invert;
-                progress -= startOffset + current->title.length();
+                progress -= startOffset + Terminal::width(current->title);
                 printProgress(progress);
             }
         }
@@ -315,7 +314,7 @@ void render(Lyrics& lyrics, Terminal::Plane& plane) {
     for (auto itemIndex = win.start; itemIndex < win.end;
          ++itemIndex, ++yCursor) {
         auto textLine = data[itemIndex].substr(0, maxWidth);
-        plane << Cursor(1 + (maxWidth - textLine.length()) / 2, yCursor)
+        plane << Cursor(1 + (maxWidth - Terminal::width(textLine)) / 2, yCursor)
               << textLine;
     }
     plane.box(lyrics.title(), Element::Title, {0, 0, size.cols, size.rows},

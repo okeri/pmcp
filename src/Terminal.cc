@@ -101,7 +101,8 @@ enum class Flags : unsigned {
     Hidden = 0x2,
     Inverted = 0x4,
     NoInverted = 0x8,
-    ClearDecoration = 0x10
+    ClearDecoration = 0x10,
+    Multi = 0x20
 };
 
 constexpr Flags operator|(const Flags a, const Flags b) {
@@ -127,7 +128,7 @@ constexpr Flags& operator&=(Flags& a, const Flags b) {
 }
 
 class Cell {
-    wchar_t data_{L' '};
+    wchar_t data_[2]{L' ', 0};
     Element style_{Element::Default};
     Flags flags_{Flags::None};
 
@@ -169,12 +170,18 @@ class Cell {
     }
 
     Cell& operator=(wchar_t symbol) noexcept {
-        data_ = symbol;
+        flags_ &= ~Flags::Multi;
+        data_[0] = symbol;
         return *this;
     }
 
+    void setSecond(wchar_t symbol) noexcept {
+        flags_ |= Flags::Multi;
+        data_[1] = symbol;
+    }
+
     [[nodiscard]] unsigned width() const noexcept {
-        return wcwidth(data_);
+        return wcwidth(data_[0]) + (has(Flags::Multi) ? wcwidth(data_[1]) : 0);
     }
 
     [[nodiscard]] Element style() const noexcept {
@@ -203,7 +210,10 @@ std::wostream& operator<<(std::wostream& os, const Cell& cell) noexcept {
     } else if (cell.has(Flags::NoInverted)) {
         os << csiPrefix << L"27m";
     }
-    os << cell.data_;
+    os << cell.data_[0];
+    if (cell.has(Flags::Multi)) {
+        os << cell.data_[1];
+    }
     return os;
 }
 
@@ -224,7 +234,12 @@ class Terminal::Plane::Impl {
     unsigned putText(std::wstring_view s, unsigned cursor) noexcept {
         for (auto it = s.begin(); it < s.end(); ++it) {
             cells_[cursor] = *it;
-            auto fin = cursor + cells_[cursor].width();
+            auto width = cells_[cursor].width();
+            if (width == 0) {
+                cells_[cursor++].setSecond(*(++it));
+                continue;
+            }
+            auto fin = cursor + width;
             for (++cursor; cursor < fin; ++cursor) {
                 cells_[cursor].hide();
             }
@@ -456,6 +471,10 @@ Terminal::Plane Terminal::createPlane(const Bounds& pos) {
 void Terminal::render() const noexcept {
     std::wcout << CSI::Reset;
     std::wcout.flush();
+}
+
+unsigned Terminal::width(std::wstring_view str) noexcept {
+    return Cell::width(str);
 }
 
 Terminal& term() {
