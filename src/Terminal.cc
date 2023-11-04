@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cwchar>
 #include <cstring>
-
+#include <algorithm>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <termios.h>
@@ -231,16 +231,23 @@ class Terminal::Plane::Impl {
         return size_.rows * size_.cols;
     }
 
+    inline void inc(unsigned& cursor) noexcept {
+        if (cursor < cells_.size() - 1) {
+            ++cursor;
+        }
+    }
+
     unsigned putText(std::wstring_view s, unsigned cursor) noexcept {
         for (auto it = s.begin(); it < s.end(); ++it) {
             cells_[cursor] = *it;
             auto width = cells_[cursor].width();
             if (width == 0) {
-                cells_[cursor++].setSecond(*(++it));
+                cells_[cursor].setSecond(*(++it));
+                inc(cursor);
                 continue;
             }
             auto fin = cursor + width;
-            for (++cursor; cursor < fin; ++cursor) {
+            for (inc(cursor); cursor < fin; inc(cursor)) {
                 cells_[cursor].hide();
             }
         }
@@ -268,6 +275,9 @@ class Terminal::Plane::Impl {
     }
 
     void operator<<(CSI csi) noexcept {
+        if (cursor_ > cells_.size()) {
+            cursor_ = cells_.size() - 1;
+        }
         switch (csi) {
             case CSI::Reset:
                 cells_[cursor_].setStyle(Element::Default);
@@ -293,7 +303,8 @@ class Terminal::Plane::Impl {
     }
 
     void operator<<(const Cursor& cursor) noexcept {
-        cursor_ = cursor.y * size_.cols + cursor.x;
+        cursor_ = std::clamp(cursor.y * size_.cols + cursor.x, 0u,
+            static_cast<unsigned>(cells_.size() - 1));
     }
 
     void operator<<(const Element element) noexcept {
@@ -301,7 +312,8 @@ class Terminal::Plane::Impl {
     }
 
     void operator<<(wchar_t c) noexcept {
-        cells_[cursor_++] = c;
+        cells_[cursor_] = c;
+        inc(cursor_);
     }
 
     void operator<<(std::wstring_view s) noexcept {
@@ -453,6 +465,10 @@ Terminal& Terminal::operator<<(const Plane& plane) noexcept {
 }
 
 Terminal::Terminal() noexcept {
+    std::ios::sync_with_stdio(false);
+    auto loc = std::locale{""};
+    std::wcout.imbue(loc);
+    std::locale::global(loc);
     tcgetattr(STDOUT_FILENO, terminfo());
     auto ios = termios();
     cfmakeraw(&ios);
