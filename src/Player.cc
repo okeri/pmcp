@@ -1,4 +1,6 @@
+#include "FFT.hh"
 #include "Player.hh"
+#include <cmath>
 
 template <class Pred>
 decltype(auto) bufferAction(
@@ -7,12 +9,15 @@ decltype(auto) bufferAction(
         case SampleFormat::S8:
             return pred(
                 reinterpret_cast<int8_t*>(buffer.data), buffer.frameCount);
+
         case SampleFormat::U8:
             return pred(
                 reinterpret_cast<uint8_t*>(buffer.data), buffer.frameCount);
+
         case SampleFormat::S16:
             return pred(
                 reinterpret_cast<int16_t*>(buffer.data), buffer.frameCount);
+
         case SampleFormat::S24:
         case SampleFormat::S32:
             return pred(
@@ -28,6 +33,95 @@ decltype(auto) bufferAction(
     }
 }
 
+#ifdef ENABLE_SPECTRALIZER
+
+void calculateBins(
+    const AudioBuffer& buffer, const StreamParams& params, Player::Bins& bins) {
+    constexpr auto highFreq = 16000;
+    constexpr auto lowFreq = 100;
+    constexpr auto MaxFFT = 4096u;
+
+    auto fftSize = std::min(buffer.frameCount, MaxFFT);
+    auto hamming = [](int N) {
+        if (N == 0) {
+            return std::vector<double>{};
+        }
+        if (N == 1) {
+            return std::vector<double>(1, 1.);
+        }
+
+        auto result = std::vector<double>(N);
+        for (auto i = 0, start = 1 - static_cast<int>(N); i < N; ++i) {
+            result[i] = 0.54 + 0.46 * cos(M_PI * (start + (i << 1)) / (N - 1));
+        }
+        return result;
+    };
+
+    auto binSpace = [&bins](unsigned fftSize) {
+        std::vector<unsigned> result(bins.size());
+        auto sigma = 3.8751;
+        auto sigma2 = 0.0375;
+        auto hz2bin = [&fftSize](double freq) -> unsigned {
+            return freq / (2 * highFreq) * fftSize;
+        };
+        auto lowest = hz2bin(lowFreq);
+        for (auto i = 0u; i < result.size(); ++i) {
+            auto bin = lowest + hz2bin(pow(M_E, sigma + sigma2 * i));
+            if (i != 0 && result[i - 1] >= bin) {
+                bin = result[i - 1] + 1;
+            }
+            result[i] = bin;
+        }
+        return result;
+    };
+
+    static auto audio = std::array<double, MaxFFT>{};
+    static auto frequences = std::array<std::complex<double>, MaxFFT / 2 + 1>{};
+    static auto window = hamming(fftSize);
+    static auto space = binSpace(fftSize);
+    static auto fft = FFT(fftSize, audio.data(), frequences.data());
+
+    if (window.size() != fftSize) {
+        window = hamming(fftSize);
+        space = binSpace(fftSize);
+        fft.resize(fftSize);
+    }
+
+    bufferAction(params.format, buffer,
+        [&params](auto* frames, [[maybe_unused]] unsigned frameCount) {
+            using SampleType = std::remove_pointer_t<decltype(frames)>;
+            constexpr auto NormValue = std::numeric_limits<SampleType>::max();
+            auto sum = [](SampleType v1, SampleType v2) {
+                if constexpr (std::is_signed<SampleType>()) {
+                    return std::abs(v1) + std::abs(v2);
+                } else {
+                    return v1 + v2;
+                }
+            };
+            for (auto i = 0u; i < window.size(); ++i) {
+                // 2 channels
+                if (params.channelCount == 2) {
+                    audio[i] = sum(frames[i * 2], frames[i * 2 + 1]) *
+                               window[i] / 2 / NormValue;
+                } else {
+                    audio[i] = frames[i] * window[i] / NormValue;
+                }
+            }
+        });
+
+    fft.exec();
+
+    for (auto bin = 0u; bin < bins.size() - 1; ++bin) {
+        auto value = 0.f;
+        for (auto c = space[bin]; c <= space[bin + 1] && c < fftSize / 2; ++c) {
+            value += std::abs(frequences[c]);
+        }
+        value = log(value) / 5.f;
+        bins[bin] = std::clamp(std::isnan(value) ? 0.f : value, 0.f, 1.f);
+    }
+}
+#endif
+
 Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
     char* argv[]) noexcept :
     opts_(opts),
@@ -35,7 +129,7 @@ Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
     sink_(
         [this, progressSender](const auto& buffer) {
             static unsigned long seconds = 0;
-            auto result = decoder_.fill(buffer);
+            auto sampleCount = decoder_.fill(buffer);
             bufferAction(params_.format, buffer,
                 [this](auto* frames, unsigned frameCount) {
                     for (auto i = 0u; i < frameCount * params_.channelCount;
@@ -43,23 +137,28 @@ Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
                         frames[i] *= params_.volume;
                     }
                 });
-
-            framesDone_ += result;
+            framesDone_ += sampleCount;
 
             auto entry = currentEntry();
             if (!entry) {
-                return result;
+                return sampleCount;
             }
-            auto doneSec = result != 0
+#ifdef ENABLE_SPECTRALIZER
+            if (opts_.spectralizer) {
+                calculateBins(buffer, params_, bins_);
+            }
+#endif
+            auto doneSec = sampleCount != 0
                                ? static_cast<unsigned>(
                                      framesDone_ * entry->duration / frames_)
                                : EndOfSong;
-
-            if (doneSec != seconds) {
+            static auto endFired = false;
+            if ((opts_.spectralizer && !endFired) || doneSec != seconds) {
                 seconds = doneSec;
                 progressSender.send(Msg(static_cast<unsigned>(doneSec)));
+                endFired = doneSec == EndOfSong;
             }
-            return result;
+            return sampleCount;
         },
         argc, argv) {
 }
@@ -226,4 +325,8 @@ void Player::updateShuffleQueue() noexcept {
 
 void Player::setVolume(double volume) noexcept {
     params_.volume = volume;
+}
+
+const Player::Bins& Player::bins() const noexcept {
+    return bins_;
 }

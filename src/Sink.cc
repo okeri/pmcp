@@ -19,6 +19,10 @@ class Sink::Impl {
         explicit LoopLock(pw_thread_loop* loop) : loop_(loop) {
             pw_thread_loop_lock(loop_);
         }
+        LoopLock(const LoopLock&) = delete;
+        LoopLock(LoopLock&&) = delete;
+        LoopLock& operator=(const LoopLock&) = delete;
+        LoopLock& operator=(LoopLock&&) = delete;
         ~LoopLock() {
             pw_thread_loop_unlock(loop_);
         }
@@ -94,7 +98,6 @@ class Sink::Impl {
                     return 0;
             }
         };
-        stop();
         stride_ = width(streamParams.format) * streamParams.channelCount;
         spa_audio_info_raw info = {.format = format(streamParams.format),
             .flags = 0,

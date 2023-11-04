@@ -16,6 +16,9 @@ enum class Command {
 
 class Player {
   public:
+    static constexpr auto BinCount = 128u;
+    using Bins = std::array<float, BinCount>;
+
     enum : unsigned { EndOfSong = 0xffffffff, SeekSeconds = 10 };
     struct Stopped {
         std::wstring error;
@@ -45,6 +48,7 @@ class Player {
     [[nodiscard]] const StreamParams& streamParams() const noexcept;
     [[nodiscard]] const Entry* currentEntry() const noexcept;
     [[nodiscard]] std::optional<unsigned> currentId() const noexcept;
+    [[nodiscard]] const Bins& bins() const noexcept;
 
     void setVolume(double volume) noexcept;
     void clearQueue() noexcept;
@@ -62,7 +66,7 @@ class Player {
     long frames_{0};
     std::atomic_long framesDone_{0};
     long seekFrames_{0};
-
+    Bins bins_{0.f};
     const State& start() noexcept;
     void stop() noexcept;
     [[nodiscard]] bool stopped() const noexcept;

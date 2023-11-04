@@ -20,6 +20,7 @@ enum class Action {
     ToggleNext,
     ToggleLyrics,
     ToggleHelp,
+    ToggleSpectralizer,
     AddToPlaylist,
     Delete,
     Clear,

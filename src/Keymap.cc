@@ -99,6 +99,7 @@ static std::array<ActionDescription, count> descriptions{{
     {"toggle_next", L"Toggle Next option"},
     {"lyrics", L"Show/hide lyrics display"},
     {"help", L"Show/hide this help"},
+    {"toggle_visualization", L"Show/hide visualization"},
     {"add_to_playlist", L"Add file/directory to playlist"},
     {"delete", L"Remove selected item from playlist"},
     {"clear", L"Clear playlist"},
@@ -146,6 +147,9 @@ Keymap::Keymap(const std::string& path) :
         {static_cast<input::Key>('L'), Action::ToggleLyrics},
         {static_cast<input::Key>('h'), Action::ToggleHelp},
         {static_cast<input::Key>('?'), Action::ToggleHelp},
+#ifdef ENABLE_SPECTRALIZER
+        {static_cast<input::Key>('V'), Action::ToggleSpectralizer},
+#endif
         {static_cast<input::Key>('d'), Action::Delete},
         {static_cast<input::Key>('C'), Action::Clear},
         {static_cast<input::Key>('x') | input::Key::CtrlBase,

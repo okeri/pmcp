@@ -6,22 +6,25 @@
 #include "PlayerView.hh"
 #include "Status.hh"
 #include "Widget.hh"
+#include "Spectralizer.hh"
 
 class App {
     enum class DrawFlags : unsigned {
         None = 0x0,
         Content = 0x1,
         Status = 0x2,
-        All = 0x3
+        Spectre = 0x6,
+        All = 0x7
     };
     Config& config_;
     const Keymap& keymap_;
     unsigned pageSize_{0};
-    std::array<Terminal::Plane, 2> planes_;
+    std::array<Terminal::Plane, 3> planes_;
     Player player_;
     Widget<PlayerView> playview_;
     Widget<Help> help_;
     Widget<Lyrics> lyrics_;
+    Widget<Spectralizer> spectre_;
     Widget<Status> status_;
     IWidget* activeContent_;
 
@@ -29,9 +32,18 @@ class App {
         auto size = term().size();
         auto statusSize = config_.options.showProgress ? 2u : 1u;
         auto contentSize = size.rows - statusSize;
+#ifdef ENABLE_SPECTRALIZER
+        auto spectrSize = config_.options.spectralizer && contentSize > 15
+                              ? std::max(5u, contentSize / 3)
+                              : 0;
+        contentSize -= spectrSize;
+#else
+        constexpr auto spectrSize = 0u;
+#endif
         pageSize_ = contentSize - 2;
         planes_[0].resize({0, 0, size.cols, contentSize});
-        planes_[1].resize({0, contentSize, size.cols, statusSize});
+        planes_[1].resize({0, contentSize, size.cols, spectrSize});
+        planes_[2].resize({0, contentSize + spectrSize, size.cols, statusSize});
     }
 
   public:
@@ -39,12 +51,14 @@ class App {
         char* argv[]) :
         config_(config),
         keymap_(keymap),
-        planes_({term().createPlane({0, 0, 0, 0}),
-            term().createPlane({0, 0, 0, 0})}),
+        planes_(
+            {term().createPlane({0, 0, 0, 0}), term().createPlane({0, 0, 0, 0}),
+                term().createPlane({0, 0, 0, 0})}),
         player_(sender, config_.options, argc, argv),
         playview_(config_),
         help_(keymap),
         lyrics_(std::move(sender), config_.lyricsProvider, config_.lyricsPath),
+        spectre_(player_.state(), player_.bins()),
         status_(config_, player_.state(), player_.streamParams()),
         activeContent_(&playview_) {
         resize();
@@ -212,6 +226,12 @@ class App {
                 result = DrawFlags::All;
                 break;
 
+            case Action::ToggleSpectralizer:
+                config_.options.spectralizer = !config_.options.spectralizer;
+                resize();
+                result = DrawFlags::All;
+                break;
+
             case Action::VolUp1:
                 modVolume(0.01);
                 break;
@@ -290,7 +310,7 @@ class App {
                 } else if constexpr (std::is_same<Type, unsigned>()) {
                     if (value != Player::EndOfSong) {
                         status_->setProgress(value);
-                        drawFlags = DrawFlags::Status;
+                        drawFlags = DrawFlags::Spectre;
                     } else {
                         status_->setProgress(0);
                         player_.emit(Command::Next);
@@ -316,16 +336,21 @@ class App {
             activeContent_->render(planes_[0]);
             term() << planes_[0];
         }
-        if (hasFlag(DrawFlags::Status)) {
-            status_.render(planes_[1]);
+#ifdef ENABLE_SPECTRALIZER
+        if (hasFlag(DrawFlags::Spectre) && config_.options.spectralizer) {
+            spectre_.render(planes_[1]);
             term() << planes_[1];
+        }
+#endif
+        if (hasFlag(DrawFlags::Status)) {
+            status_.render(planes_[2]);
+            term() << planes_[2];
         }
         term().render();
     }
 };
 
 int main(int argc, char* argv[]) {
-    std::setlocale(LC_ALL, "");  // NOLINT:concurrency-mt-unsafe
     auto [sender, receiver] = channel<Msg>();
     auto config = Config();
     loadTheme(config.themePath.c_str());
