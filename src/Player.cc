@@ -57,16 +57,16 @@ void calculateBins(
         return result;
     };
 
-    auto binSpace = [&bins](unsigned fftSize) {
-        std::vector<unsigned> result(bins.size());
-        auto sigma = 3.8751;
-        auto sigma2 = 0.0375;
+    auto binSpace = [](unsigned fftSize) {
+        std::vector<unsigned> result(Player::BinCount);
+        constexpr auto K = 4.;
+        constexpr auto sigma = 4.8 / Player::BinCount;
         auto hz2bin = [&fftSize](double freq) -> unsigned {
             return freq / (2 * highFreq) * fftSize;
         };
         auto lowest = hz2bin(lowFreq);
         for (auto i = 0u; i < result.size(); ++i) {
-            auto bin = lowest + hz2bin(pow(M_E, sigma + sigma2 * i));
+            auto bin = lowest + hz2bin(pow(M_E, K + sigma * i));
             if (i != 0 && result[i - 1] >= bin) {
                 bin = result[i - 1] + 1;
             }
