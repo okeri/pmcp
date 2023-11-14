@@ -32,11 +32,11 @@ class AtomicLifo {
         return {};
     }
 
-    void waitNonEmpty() {
+    void waitNonEmpty() noexcept {
         head_.wait(nullptr);
     }
 
-    void notify() {
+    void notify() noexcept {
         head_.notify_one();
     }
 };
