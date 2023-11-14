@@ -342,9 +342,6 @@ void render(Spectralizer& spectres, Terminal::Plane& plane) {
             ++barWidth;
             barCount = (spectreWidth + 1) / (barWidth + 1);
         }
-        // if ((barWidth + 1) * barCount - 1 > spectreWidth) {
-        //     barCount -= 2;
-        // }
         static std::array<wchar_t, 8> BarChars = {
             L'▁', L'▂', L'▃', L'▄', L'▅', L'▆', L'▇', L'█'};
 
@@ -363,10 +360,6 @@ void render(Spectralizer& spectres, Terminal::Plane& plane) {
                 plane << BarChars[lastRow];
             }
         };
-        plane << Cursor(1, 1) << L"spectrewidth"
-              << std::to_wstring(spectreWidth) << L", width: "
-              << std::to_wstring(barWidth) << L", count:"
-              << std::to_wstring(barCount);
         auto extra = spectreWidth - ((barWidth + 1) * barCount - 1);
         auto xstart = 1u + extra / 2;
         auto maxHeight = size.rows - 2;

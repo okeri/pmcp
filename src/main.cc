@@ -359,10 +359,7 @@ class App {
     }
 };
 
-#include <sanitizer/asan_interface.h>
-
 int main(int argc, char* argv[]) {
-    __sanitizer_set_report_path("/tmp/tsan.log");
     auto [sender, receiver] = channel<Msg>();
     auto config = Config();
     loadTheme(config.themePath.c_str());
