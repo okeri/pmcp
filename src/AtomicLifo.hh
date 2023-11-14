@@ -16,16 +16,14 @@ class AtomicLifo {
     void push(Data&& data) {
         auto node = new Node;
         node->data = std::move(data);
-        node->next = head_.load(std::memory_order::relaxed);
-        while (!head_.compare_exchange_weak(node->next, node,
-            std::memory_order::release, std::memory_order::relaxed)) {
+        node->next = head_.load(std::memory_order::acquire);
+        while (!head_.compare_exchange_weak(node->next, node)) {
         }
     }
 
     std::optional<Data> pop() {
         if (auto head = head_.load()) {
-            while (!head_.compare_exchange_weak(head, head->next,
-                std::memory_order::release, std::memory_order::relaxed)) {
+            while (!head_.compare_exchange_weak(head, head->next)) {
             }
             auto data = std::move(head->data);
             delete head;
