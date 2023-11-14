@@ -13,7 +13,7 @@ class App {
         None = 0x0,
         Content = 0x1,
         Status = 0x2,
-        Spectre = 0x6,
+        Spectre = 0x4,
         All = 0x7
     };
     Config& config_;
@@ -58,7 +58,8 @@ class App {
         playview_(config_),
         help_(keymap),
         lyrics_(std::move(sender), config_.lyricsProvider, config_.lyricsPath),
-        spectre_(player_.state(), player_.bins()),
+        spectre_(player_.state(),
+            [this](unsigned count) { player_.setBinCount(count); }),
         status_(config_, player_.state(), player_.streamParams()),
         activeContent_(&playview_) {
         resize();
@@ -136,6 +137,9 @@ class App {
                 break;
 
             case Action::Next:
+                if (std::get_if<Player::Stopped>(&player_.state()) != nullptr) {
+                    return handleAction(Action::Play);
+                }
                 player_.emit(Command::Next);
                 playview_->markPlaying(player_.currentId());
                 updateLyricsSong(player_.currentEntry());
@@ -310,13 +314,18 @@ class App {
                 } else if constexpr (std::is_same<Type, unsigned>()) {
                     if (value != Player::EndOfSong) {
                         status_->setProgress(value);
-                        drawFlags = DrawFlags::Spectre;
+                        drawFlags = DrawFlags::Status;
                     } else {
                         status_->setProgress(0);
                         player_.emit(Command::Next);
                         playview_->markPlaying(player_.currentId());
                         updateLyricsSong(player_.currentEntry());
                     }
+#ifdef ENABLE_SPECTRALIZER
+                } else if constexpr (std::is_same<Type, std::vector<float>>()) {
+                    spectre_->applyBins(std::move(value));
+                    drawFlags = DrawFlags::Spectre;
+#endif
                 } else if constexpr (std::is_same<Type, Action>()) {
                     drawFlags = handleAction(value);
                 }
@@ -350,7 +359,10 @@ class App {
     }
 };
 
+#include <sanitizer/asan_interface.h>
+
 int main(int argc, char* argv[]) {
+    __sanitizer_set_report_path("/tmp/tsan.log");
     auto [sender, receiver] = channel<Msg>();
     auto config = Config();
     loadTheme(config.themePath.c_str());
@@ -379,6 +391,8 @@ int main(int argc, char* argv[]) {
         auto msg = receiver.recv();
         app.handleEvent(msg);
         if (doQuit(msg)) {
+            while (receiver.try_recv()) {
+            }
             break;
         }
     }

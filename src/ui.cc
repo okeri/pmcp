@@ -333,69 +333,55 @@ void render(Spectralizer& spectres, Terminal::Plane& plane) {
         return;
     }
     if (std::get_if<Player::Playing>(&spectres.state()) != nullptr) {
-        constexpr auto MinWidthBar = 4u;
         auto spectreWidth = size.cols - 2;
-        auto barCount = (spectreWidth + 1) / (MinWidthBar + 1);
-        barCount = std::clamp(barCount, 8u, Player::BinCount);
-
-        static std::vector<unsigned> bars;
-        auto widthBar = (spectreWidth + 1) / barCount - 1;
+        constexpr auto MinWidthBar = 4u;
+        auto barWidth = MinWidthBar;
+        constexpr auto MaxBarCount = 32u;
+        auto barCount = (spectreWidth + 1) / (barWidth + 1);
+        while (barCount > MaxBarCount) {
+            ++barWidth;
+            barCount = (spectreWidth + 1) / (barWidth + 1);
+        }
+        // if ((barWidth + 1) * barCount - 1 > spectreWidth) {
+        //     barCount -= 2;
+        // }
         static std::array<wchar_t, 8> BarChars = {
             L'▁', L'▂', L'▃', L'▄', L'▅', L'▆', L'▇', L'█'};
 
-        auto drawBar = [&plane, &size](
-                           unsigned xstart, unsigned width, unsigned value) {
+        auto drawBar = [&plane](unsigned xstart, unsigned width,
+                           unsigned maxHeight, unsigned value) {
             auto fullRows = value >> 3;
             auto lastRow = value & 0x7;
             for (auto i = 0u; i < fullRows; ++i) {
-                plane << Cursor(xstart, size.rows - 2 - i);
+                plane << Cursor(xstart, maxHeight - i);
                 for (auto c = 0u; c < width; ++c) {
                     plane << BarChars[7];
                 }
             }
-            plane << Cursor(xstart, size.rows - 2 - fullRows);
+            plane << Cursor(xstart, maxHeight - fullRows);
             for (auto c = 0u; c < width; ++c) {
                 plane << BarChars[lastRow];
             }
         };
-        auto left = (spectreWidth - (barCount - 1 + (widthBar * barCount)));
-
-        auto copyBars = [&spectres, &barCount](unsigned maxValue) {
-            auto binsPerBar = spectres.bins().size() / barCount;
-            if (binsPerBar == 0) {
-                return;
+        plane << Cursor(1, 1) << L"spectrewidth"
+              << std::to_wstring(spectreWidth) << L", width: "
+              << std::to_wstring(barWidth) << L", count:"
+              << std::to_wstring(barCount);
+        auto extra = spectreWidth - ((barWidth + 1) * barCount - 1);
+        auto xstart = 1u + extra / 2;
+        auto maxHeight = size.rows - 2;
+        auto maxValue = maxHeight << 3;
+        if (spectres.bins().size() == barCount) {
+            for (const auto& bin : spectres.bins()) {
+                drawBar(xstart, barWidth, maxHeight, maxValue * bin);
+                xstart += barWidth + 1;
             }
-
-            auto calcValue = [&spectres, &binsPerBar, &maxValue](
-                                 unsigned index) {
-                auto value = 0.f;
-                for (auto i = index * binsPerBar; i < (index + 1) * binsPerBar;
-                     ++i) {
-                    value += spectres.bins()[i];
-                }
-                return value * (maxValue << 3) / binsPerBar;
-            };
-
-            if (bars.size() != barCount) {
-                bars = std::vector<unsigned>(barCount, 0u);
+        } else {
+            for (auto i = 0u; i < barCount; ++i) {
+                drawBar(xstart, barWidth, maxHeight, 1);
+                xstart += barWidth + 1;
             }
-            for (auto i = 0u; i < bars.size(); ++i) {
-                auto val = calcValue(i);
-                bars[i] = val > bars[i] ? val : bars[i] - 2;
-            }
-        };
-
-        copyBars(size.rows - 2);
-        auto xstart = 1u;
-        for (const auto& bar : bars) {
-            if (left == 0) {
-                drawBar(xstart, widthBar, bar);
-                xstart += widthBar + 1;
-            } else {
-                left--;
-                drawBar(xstart, widthBar + 1, bar);
-                xstart += widthBar + 2;
-            }
+            spectres.setBinCount(barCount);
         }
     }
     plane.box(

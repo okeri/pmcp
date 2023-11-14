@@ -1,5 +1,6 @@
 #include "FFT.hh"
 #include "Player.hh"
+
 #include <cmath>
 
 template <class Pred>
@@ -35,14 +36,14 @@ decltype(auto) bufferAction(
 
 #ifdef ENABLE_SPECTRALIZER
 
-void calculateBins(
-    const AudioBuffer& buffer, const StreamParams& params, Player::Bins& bins) {
-    constexpr auto highFreq = 16000;
-    constexpr auto lowFreq = 100;
+std::vector<float> calculateBins(
+    const AudioBuffer& buffer, const StreamParams& params, unsigned binCount) {
+    constexpr auto LowFreq = 100u;
+    constexpr auto HighFreq = 20000u;
     constexpr auto MaxFFT = 4096u;
 
     auto fftSize = std::min(buffer.frameCount, MaxFFT);
-    auto hamming = [](int N) {
+    auto hanning = [](int N) {
         if (N == 0) {
             return std::vector<double>{};
         }
@@ -51,39 +52,49 @@ void calculateBins(
         }
 
         auto result = std::vector<double>(N);
-        for (auto i = 0, start = 1 - static_cast<int>(N); i < N; ++i) {
-            result[i] = 0.54 + 0.46 * cos(M_PI * (start + (i << 1)) / (N - 1));
+        for (auto i = 0, start = 1 - N; i < N; ++i) {
+            result[i] = 0.5 + 0.5 * cos(M_PI * (start + (i << 1)) / (N - 1));
         }
         return result;
     };
 
-    auto binSpace = [](unsigned fftSize) {
-        std::vector<unsigned> result(Player::BinCount);
-        constexpr auto K = 4.;
-        constexpr auto sigma = 4.8 / Player::BinCount;
-        auto hz2bin = [&fftSize](double freq) -> unsigned {
-            return freq / (2 * highFreq) * fftSize;
+    auto binSpace = [](unsigned binCount, unsigned fftSize,
+                        unsigned sampleRate) {
+        const auto start_power = std::log(LowFreq);
+        const auto step =
+            std::log(static_cast<double>(HighFreq) / LowFreq) / binCount;
+
+        const auto freqResolution = static_cast<double>(sampleRate) / fftSize;
+        auto hz2index = [&freqResolution](double freq) -> unsigned {
+            return freq / freqResolution;
         };
-        auto lowest = hz2bin(lowFreq);
-        for (auto i = 0u; i < result.size(); ++i) {
-            auto bin = lowest + hz2bin(pow(M_E, K + sigma * i));
-            if (i != 0 && result[i - 1] >= bin) {
-                bin = result[i - 1] + 1;
+
+        auto p = start_power;
+        auto lowest = hz2index(LowFreq);
+        auto result = std::vector<unsigned>(binCount);
+        for (auto i = 0u; i < result.size(); ++i, p += step) {
+            auto freq = std::pow(M_E, p);
+            auto index = hz2index(freq);
+            if (lowest >= index) {
+                index = lowest + 1;
             }
-            result[i] = bin;
+            result[i] = lowest = index;
         }
         return result;
     };
 
     static auto audio = std::array<double, MaxFFT>{};
     static auto frequences = std::array<std::complex<double>, MaxFFT / 2 + 1>{};
-    static auto window = hamming(fftSize);
-    static auto space = binSpace(fftSize);
+    static auto window = hanning(fftSize);
+    static auto scale = binSpace(binCount, fftSize, params.rate);
     static auto fft = FFT(fftSize, audio.data(), frequences.data());
 
+    if (window.size() != fftSize || scale.size() != binCount) {
+        scale = binSpace(binCount, fftSize, params.rate);
+    }
+
     if (window.size() != fftSize) {
-        window = hamming(fftSize);
-        space = binSpace(fftSize);
+        window = hanning(fftSize);
         fft.resize(fftSize);
     }
 
@@ -91,35 +102,47 @@ void calculateBins(
         [&params](auto* frames, [[maybe_unused]] unsigned frameCount) {
             using SampleType = std::remove_pointer_t<decltype(frames)>;
             constexpr auto NormValue = std::numeric_limits<SampleType>::max();
-            auto sum = [](SampleType v1, SampleType v2) {
+            auto avg = [](SampleType v1, SampleType v2) {
                 if constexpr (std::is_signed<SampleType>()) {
-                    return std::abs(v1) + std::abs(v2);
+                    return (std::abs(static_cast<double>(v1)) +
+                               std::abs(static_cast<double>(v2))) /
+                           2;
                 } else {
-                    return v1 + v2;
+                    return (static_cast<double>(v1) + static_cast<double>(v2)) /
+                           2;
                 }
             };
             for (auto i = 0u; i < window.size(); ++i) {
                 // 2 channels
                 if (params.channelCount == 2) {
-                    audio[i] = sum(frames[i * 2], frames[i * 2 + 1]) *
-                               window[i] / 2 / NormValue;
+                    audio[i] = avg(frames[i * 2], frames[i * 2 + 1]) *
+                               window[i] / NormValue;
                 } else {
-                    audio[i] = frames[i] * window[i] / NormValue;
+                    audio[i] =
+                        static_cast<double>(frames[i]) * window[i] / NormValue;
                 }
             }
         });
 
-    fft.exec();
-
-    for (auto bin = 0u; bin < bins.size() - 1; ++bin) {
-        auto value = 0.f;
-        for (auto c = space[bin]; c <= space[bin + 1] && c < fftSize / 2; ++c) {
-            value += std::abs(frequences[c]);
+    auto chooseMagnitude = [&fftSize](unsigned low, unsigned high) {
+        auto value = 0.;
+        for (auto i = low; i < high && i < fftSize / 2; ++i) {
+            value = std::max(value, std::abs(frequences[i]));
         }
-        value = log(value) / 5.f;
-        bins[bin] = std::clamp(std::isnan(value) ? 0.f : value, 0.f, 1.f);
+        value = std::log(value * 2) / 5;  // 20 * log(2 * value) / 100
+        return std::clamp(
+            std::isnan(value) ? 0.f : static_cast<float>(value), 0.f, 1.f);
+    };
+    fft.exec();
+    auto result = std::vector<float>(binCount);
+    for (auto bin = 0u; bin < result.size() - 1; ++bin) {
+        result[bin] = chooseMagnitude(scale[bin], scale[bin + 1]);
     }
+
+    result.back() = chooseMagnitude(scale[binCount - 1], HighFreq);
+    return result;
 }
+
 #endif
 
 Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
@@ -145,18 +168,17 @@ Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
             }
 #ifdef ENABLE_SPECTRALIZER
             if (opts_.spectralizer) {
-                calculateBins(buffer, params_, bins_);
+                progressSender.send(
+                    Msg(calculateBins(buffer, params_, binCount_)));
             }
 #endif
             auto doneSec = sampleCount != 0
                                ? static_cast<unsigned>(
                                      framesDone_ * entry->duration / frames_)
                                : EndOfSong;
-            static auto endFired = false;
-            if ((opts_.spectralizer && !endFired) || doneSec != seconds) {
+            if (doneSec != seconds) {
                 seconds = doneSec;
                 progressSender.send(Msg(static_cast<unsigned>(doneSec)));
-                endFired = doneSec == EndOfSong;
             }
             return sampleCount;
         },
@@ -327,6 +349,6 @@ void Player::setVolume(double volume) noexcept {
     params_.volume = volume;
 }
 
-const Player::Bins& Player::bins() const noexcept {
-    return bins_;
+void Player::setBinCount(unsigned count) noexcept {
+    binCount_ = count;
 }
