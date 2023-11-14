@@ -57,7 +57,7 @@ std::string sockPath() {
 int main(int argc, char* argv[]) {
     std::unordered_map<std::string, Action> actionMap = {{"quit", Action::Quit},
         {"stop", Action::Stop}, {"pause", Action::Pause},
-        {"prev", Action::Prev}, {"next", Action::Next}};
+        {"prev", Action::Prev}, {"next", Action::Next}, {"play", Action::Play}};
 
     auto usage = [&actionMap](const char* name) {
         std::cout << "usage:" << name << " <";

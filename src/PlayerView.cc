@@ -4,7 +4,8 @@
 PlayerView::PlayerView(const Config& config) :
     path_(utf8::convert(config.home)),
     lists_({Playlist::scan(config.home, config),
-        Playlist::load(config.playlistPath, config)}) {
+        Playlist::load(config.playlistPath, config)}),
+    playlistActive_(lists_[1].count() != 0) {
 }
 
 Playlist& PlayerView::activeList() noexcept {

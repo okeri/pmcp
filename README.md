@@ -10,6 +10,8 @@ Heavily inspired by [MOC](http://moc.daper.net), but much less feature-rich :)
 [taglib](https://taglib.org)  
 [libsndfile](https://libsndfile.github.io/libsndfile)  
 [libglyr](https://github.com/sahib/glyr)(optional for lyrics fetching)  
+[intel-oneapi-mkl](https://software.intel.com/content/www/us/en/develop/tools/oneapi.html)(optional for visualization)  
+[fftw](http://www.fftw.org)(optional for visualization)  
 
 
 ## build dependencies
@@ -20,11 +22,11 @@ C++20 compiler
 
 ## building
 ```console
-meson --prefix=/usr build
+meson setup -Dspectralizer=mkl --prefix=/usr build
 meson install -C build
 ```
 
 ## configuring
-pmcp looks up for config files in $XDG_CONFIG_HOME/pmcp (typically in ~/.config/pmcp).
-config file examples you may find [here](https://github.com/okeri/pmcp/tree/master/share)
+pmcp looks up for config files in $XDG_CONFIG_HOME/pmcp (typically in ~/.config/pmcp).  
+Config file examples you may find [here](https://github.com/okeri/pmcp/tree/master/share)
 

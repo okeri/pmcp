@@ -49,6 +49,15 @@ if glyr.found()
   deps += glyr
 endif
 
+spectralizer = get_option('spectralizer')
+if spectralizer == 'mkl'
+  add_project_arguments('-DENABLE_SPECTRALIZER=MKL', language: 'cpp')
+  deps += dependency('mkl-dynamic-lp64-gomp')
+elif spectralizer == 'fftw'
+  add_project_arguments('-DENABLE_SPECTRALIZER=FFTW', language: 'cpp')
+  deps += dependency('fftw3')
+endif
+
 executable('pmcp', files, dependencies: deps, install: true)
 
 if get_option('ctl').enabled()

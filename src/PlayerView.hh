@@ -12,9 +12,9 @@ class PlayerView {
     static constexpr auto ListCount = 2;
 
     std::wstring path_;
-    bool playlistActive_{false};
-    int playlistQueued_{-1};
     std::array<Playlist, ListCount> lists_;
+    bool playlistActive_;
+    int playlistQueued_{-1};
 
     Playlist& activeList() noexcept;
 

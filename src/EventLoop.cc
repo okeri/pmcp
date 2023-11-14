@@ -21,7 +21,6 @@ void maskSigwinch() noexcept {
 void sigact(int sig) noexcept {
     if (sig == SIGWINCH) {
         gsender().send(input::Key::Resize);
-        signal(SIGWINCH, sigact);
     }
 }
 

@@ -51,6 +51,7 @@ class Player {
     void updateShuffleQueue() noexcept;
     void ff() noexcept;
     void rew() noexcept;
+    void setBinCount(unsigned count) noexcept;
 
   private:
     const Options& opts_;
@@ -61,8 +62,8 @@ class Player {
     std::optional<Playqueue> queue_;
     long frames_{0};
     std::atomic_long framesDone_{0};
+    std::atomic_uint binCount_{8};
     long seekFrames_{0};
-
     const State& start() noexcept;
     void stop() noexcept;
     [[nodiscard]] bool stopped() const noexcept;

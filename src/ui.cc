@@ -7,6 +7,7 @@
 #include "Lyrics.hh"
 #include "Help.hh"
 #include "Status.hh"
+#include "Spectralizer.hh"
 
 namespace {
 
@@ -157,7 +158,7 @@ void render(Status& status, Terminal::Plane& plane) {
             },
             state);
     };
-
+    constexpr auto MinWidthWithTitle = 70;
     const auto& state = status.state();
     const auto& config = status.config();
     const auto& params = status.streamParams();
@@ -181,6 +182,11 @@ void render(Status& status, Terminal::Plane& plane) {
                 return 0;
         }
     };
+    plane << CSI::Clear;
+    const auto& size = plane.size();
+    if (size.rows < 1 || size.cols < MinWidthWithTitle) {
+        return;
+    }
 
     auto renderStatusLine = [&]() {
         auto toMinSec = [](unsigned time) -> std::pair<unsigned, unsigned> {
@@ -202,7 +208,10 @@ void render(Status& status, Terminal::Plane& plane) {
               << std::format(L"{:02}:{:02}", ttlTime.first, ttlTime.second)
               << Element::StatusTimeBraces << L"] ";
         if (!config.options.showProgress && current != nullptr) {
-            plane << Element::StatusTitle << current->title << L' ';
+            plane << Element::StatusTitle
+                  << std::wstring_view(current->title)
+                         .substr(0, size.cols - MinWidthWithTitle)
+                  << L' ';
         }
 
         if (params.format != SampleFormat::None) {
@@ -225,11 +234,6 @@ void render(Status& status, Terminal::Plane& plane) {
               << Element::VolumeValue
               << std::format(L"{: >3}%", static_cast<unsigned>(vol * 100));
     };
-    plane << CSI::Clear;
-    const auto& size = plane.size();
-    if (size.rows < 1 || size.cols < MinWidth) {
-        return;
-    }
     auto stopped = std::get_if<Player::Stopped>(&state);
     if (stopped == nullptr || stopped->error.empty()) {
         renderStatusLine();
@@ -256,8 +260,9 @@ void render(Status& status, Terminal::Plane& plane) {
                 plane << L' ';
             }
 
-            auto intitle = std::min(Terminal::width(current->title),
-                progress > startOffset ? progress - startOffset : 0);
+            auto intitle =
+                std::min(static_cast<unsigned>(current->title.length()),
+                    progress > startOffset ? progress - startOffset : 0u);
             if (intitle != 0) {
                 plane << std::wstring_view(current->title).substr(0, intitle);
             }
@@ -319,6 +324,68 @@ void render(Lyrics& lyrics, Terminal::Plane& plane) {
     }
     plane.box(lyrics.title(), Element::Title, {0, 0, size.cols, size.rows},
         Element::Frame);
+}
+
+void render(Spectralizer& spectres, Terminal::Plane& plane) {
+    plane << CSI::Clear;
+    const auto& size = plane.size();
+    if (size.cols < MinWidth) {
+        return;
+    }
+    if (std::get_if<Player::Playing>(&spectres.state()) != nullptr) {
+        auto spectreWidth = size.cols - 2;
+        constexpr auto MinWidthBar = 4u;
+        auto barWidth = MinWidthBar;
+        constexpr auto MaxBarCount = 32u;
+        auto barCount = (spectreWidth + 1) / (barWidth + 1);
+        while (barCount > MaxBarCount) {
+            ++barWidth;
+            barCount = (spectreWidth + 1) / (barWidth + 1);
+        }
+        // if ((barWidth + 1) * barCount - 1 > spectreWidth) {
+        //     barCount -= 2;
+        // }
+        static std::array<wchar_t, 8> BarChars = {
+            L'▁', L'▂', L'▃', L'▄', L'▅', L'▆', L'▇', L'█'};
+
+        auto drawBar = [&plane](unsigned xstart, unsigned width,
+                           unsigned maxHeight, unsigned value) {
+            auto fullRows = value >> 3;
+            auto lastRow = value & 0x7;
+            for (auto i = 0u; i < fullRows; ++i) {
+                plane << Cursor(xstart, maxHeight - i);
+                for (auto c = 0u; c < width; ++c) {
+                    plane << BarChars[7];
+                }
+            }
+            plane << Cursor(xstart, maxHeight - fullRows);
+            for (auto c = 0u; c < width; ++c) {
+                plane << BarChars[lastRow];
+            }
+        };
+        plane << Cursor(1, 1) << L"spectrewidth"
+              << std::to_wstring(spectreWidth) << L", width: "
+              << std::to_wstring(barWidth) << L", count:"
+              << std::to_wstring(barCount);
+        auto extra = spectreWidth - ((barWidth + 1) * barCount - 1);
+        auto xstart = 1u + extra / 2;
+        auto maxHeight = size.rows - 2;
+        auto maxValue = maxHeight << 3;
+        if (spectres.bins().size() == barCount) {
+            for (const auto& bin : spectres.bins()) {
+                drawBar(xstart, barWidth, maxHeight, maxValue * bin);
+                xstart += barWidth + 1;
+            }
+        } else {
+            for (auto i = 0u; i < barCount; ++i) {
+                drawBar(xstart, barWidth, maxHeight, 1);
+                xstart += barWidth + 1;
+            }
+            spectres.setBinCount(barCount);
+        }
+    }
+    plane.box(
+        L"", Element::Title, {0, 0, size.cols, size.rows}, Element::Frame);
 }
 
 }  // namespace ui

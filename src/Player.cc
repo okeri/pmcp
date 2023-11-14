@@ -1,4 +1,7 @@
+#include "FFT.hh"
 #include "Player.hh"
+
+#include <cmath>
 
 template <class Pred>
 decltype(auto) bufferAction(
@@ -7,12 +10,15 @@ decltype(auto) bufferAction(
         case SampleFormat::S8:
             return pred(
                 reinterpret_cast<int8_t*>(buffer.data), buffer.frameCount);
+
         case SampleFormat::U8:
             return pred(
                 reinterpret_cast<uint8_t*>(buffer.data), buffer.frameCount);
+
         case SampleFormat::S16:
             return pred(
                 reinterpret_cast<int16_t*>(buffer.data), buffer.frameCount);
+
         case SampleFormat::S24:
         case SampleFormat::S32:
             return pred(
@@ -28,6 +34,117 @@ decltype(auto) bufferAction(
     }
 }
 
+#ifdef ENABLE_SPECTRALIZER
+
+std::vector<float> calculateBins(
+    const AudioBuffer& buffer, const StreamParams& params, unsigned binCount) {
+    constexpr auto LowFreq = 100u;
+    constexpr auto HighFreq = 20000u;
+    constexpr auto MaxFFT = 4096u;
+
+    auto fftSize = std::min(buffer.frameCount, MaxFFT);
+    auto hanning = [](int N) {
+        if (N == 0) {
+            return std::vector<double>{};
+        }
+        if (N == 1) {
+            return std::vector<double>(1, 1.);
+        }
+
+        auto result = std::vector<double>(N);
+        for (auto i = 0, start = 1 - N; i < N; ++i) {
+            result[i] = 0.5 + 0.5 * cos(M_PI * (start + (i << 1)) / (N - 1));
+        }
+        return result;
+    };
+
+    auto binSpace = [](unsigned binCount, unsigned fftSize,
+                        unsigned sampleRate) {
+        const auto start_power = std::log(LowFreq);
+        const auto step =
+            std::log(static_cast<double>(HighFreq) / LowFreq) / binCount;
+
+        const auto freqResolution = static_cast<double>(sampleRate) / fftSize;
+        auto hz2index = [&freqResolution](double freq) -> unsigned {
+            return freq / freqResolution;
+        };
+
+        auto p = start_power;
+        auto lowest = hz2index(LowFreq);
+        auto result = std::vector<unsigned>(binCount);
+        for (auto i = 0u; i < result.size(); ++i, p += step) {
+            auto freq = std::pow(M_E, p);
+            auto index = hz2index(freq);
+            if (lowest >= index) {
+                index = lowest + 1;
+            }
+            result[i] = lowest = index;
+        }
+        return result;
+    };
+
+    static auto audio = std::array<double, MaxFFT>{};
+    static auto frequences = std::array<std::complex<double>, MaxFFT / 2 + 1>{};
+    static auto window = hanning(fftSize);
+    static auto scale = binSpace(binCount, fftSize, params.rate);
+    static auto fft = FFT(fftSize, audio.data(), frequences.data());
+
+    if (window.size() != fftSize || scale.size() != binCount) {
+        scale = binSpace(binCount, fftSize, params.rate);
+    }
+
+    if (window.size() != fftSize) {
+        window = hanning(fftSize);
+        fft.resize(fftSize);
+    }
+
+    bufferAction(params.format, buffer,
+        [&params](auto* frames, [[maybe_unused]] unsigned frameCount) {
+            using SampleType = std::remove_pointer_t<decltype(frames)>;
+            constexpr auto NormValue = std::numeric_limits<SampleType>::max();
+            auto avg = [](SampleType v1, SampleType v2) {
+                if constexpr (std::is_signed<SampleType>()) {
+                    return (std::abs(static_cast<double>(v1)) +
+                               std::abs(static_cast<double>(v2))) /
+                           2;
+                } else {
+                    return (static_cast<double>(v1) + static_cast<double>(v2)) /
+                           2;
+                }
+            };
+            for (auto i = 0u; i < window.size(); ++i) {
+                // 2 channels
+                if (params.channelCount == 2) {
+                    audio[i] = avg(frames[i * 2], frames[i * 2 + 1]) *
+                               window[i] / NormValue;
+                } else {
+                    audio[i] =
+                        static_cast<double>(frames[i]) * window[i] / NormValue;
+                }
+            }
+        });
+
+    auto chooseMagnitude = [&fftSize](unsigned low, unsigned high) {
+        auto value = 0.;
+        for (auto i = low; i < high && i < fftSize / 2; ++i) {
+            value = std::max(value, std::abs(frequences[i]));
+        }
+        value = std::log(value * 2) / 5;  // 20 * log(2 * value) / 100
+        return std::clamp(
+            std::isnan(value) ? 0.f : static_cast<float>(value), 0.f, 1.f);
+    };
+    fft.exec();
+    auto result = std::vector<float>(binCount);
+    for (auto bin = 0u; bin < result.size() - 1; ++bin) {
+        result[bin] = chooseMagnitude(scale[bin], scale[bin + 1]);
+    }
+
+    result.back() = chooseMagnitude(scale[binCount - 1], HighFreq);
+    return result;
+}
+
+#endif
+
 Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
     char* argv[]) noexcept :
     opts_(opts),
@@ -35,7 +152,7 @@ Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
     sink_(
         [this, progressSender](const auto& buffer) {
             static unsigned long seconds = 0;
-            auto result = decoder_.fill(buffer);
+            auto sampleCount = decoder_.fill(buffer);
             bufferAction(params_.format, buffer,
                 [this](auto* frames, unsigned frameCount) {
                     for (auto i = 0u; i < frameCount * params_.channelCount;
@@ -43,23 +160,27 @@ Player::Player(Sender<Msg> progressSender, const Options& opts, int argc,
                         frames[i] *= params_.volume;
                     }
                 });
-
-            framesDone_ += result;
+            framesDone_ += sampleCount;
 
             auto entry = currentEntry();
             if (!entry) {
-                return result;
+                return sampleCount;
             }
-            auto doneSec = result != 0
+#ifdef ENABLE_SPECTRALIZER
+            if (opts_.spectralizer) {
+                progressSender.send(
+                    Msg(calculateBins(buffer, params_, binCount_)));
+            }
+#endif
+            auto doneSec = sampleCount != 0
                                ? static_cast<unsigned>(
                                      framesDone_ * entry->duration / frames_)
                                : EndOfSong;
-
             if (doneSec != seconds) {
                 seconds = doneSec;
                 progressSender.send(Msg(static_cast<unsigned>(doneSec)));
             }
-            return result;
+            return sampleCount;
         },
         argc, argv) {
 }
@@ -226,4 +347,8 @@ void Player::updateShuffleQueue() noexcept {
 
 void Player::setVolume(double volume) noexcept {
     params_.volume = volume;
+}
+
+void Player::setBinCount(unsigned count) noexcept {
+    binCount_ = count;
 }
