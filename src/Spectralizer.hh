@@ -23,14 +23,16 @@ class Spectralizer {
     }
 
     void applyBins(std::vector<float> bins) {
+        constexpr auto dropRate = 5.f;
         if (bins_.size() != bins.size()) {
             bins_ = std::move(bins);
         }
-        for (auto i = 0ul; i < bins.size(); ++i) {  // TODO: iters
-            if (bins[i] > bins_[i]) {
+        for (auto i = 0ul; i < bins.size(); ++i) {
+            auto diff = bins[i] - bins_[i];
+            if (diff > 0) {
                 bins_[i] = bins[i];
             } else {
-                bins_[i] -= std::min(bins_[i] / 20.f, bins_[i] - bins[i]);
+                bins_[i] += diff / dropRate;
             }
         }
     }

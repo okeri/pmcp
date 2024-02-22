@@ -129,7 +129,7 @@ std::vector<float> calculateBins(
         for (auto i = low; i < high && i < fftSize / 2; ++i) {
             value = std::max(value, std::abs(frequences[i]));
         }
-        value = std::log(value * 2) / 5;  // 20 * log(2 * value) / 100
+        value = 20 * log(2 * value) / 100;
         return std::clamp(
             std::isnan(value) ? 0.f : static_cast<float>(value), 0.f, 1.f);
     };
