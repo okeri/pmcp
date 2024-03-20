@@ -1,1 +1,39 @@
-Checks:          '-*,clang-diagnostic-*,clang-analyzer-*,android-*,concurrency-*,hicpp-*,misc-*,modernize-*,-modernize-use-trailing-return-type,-hicpp-avoid-c-arrays,-hicpp-signed-bitwise,-modernize-avoid-c-arrays,-hicpp-no-array-decay,-hicpp-use-equals-default,-hicpp-vararg,-modernize-use-equals-default,-hicpp-uppercase-literal-suffix,-misc-non-private-member-variables-in-classes'
+Checks:          'bugprone-*,cppcoreguidelines-*,concurrency-*,misc-*,modernize-*,performance-*,readability-*,hicpp-explicit-conversions,hicpp-exception-baseclass,hicpp-multiway-paths-covered,hicpp-no-assembler,hicpp-member-init,-bugprone-easily-swappable-parameters,-modernize-use-trailing-return-type,-modernize-avoid-c-arrays,-cppcoreguidelines-avoid-c-arrays,-cppcoreguidelines-pro-type-member-init,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-avoid-magic-numbers,-misc-unused-parameters'
+
+CheckOptions:
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.MemberCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: _
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: CamelCase
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+  - key: readability-identifier-naming.LocalVariableCase
+    value: camelBack
+  - key: readability-identifier-naming.UnionCase
+    value: camelBack
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.MethodCase
+    value: camelBack
+  - key: readability-identifier-naming.TypedefCase
+    value: CamelCase
+  - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: true
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: 'x|y|a|b|id'
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: 'x|y|id'
+  - key: readability-function-cognitive-complexity.Threshold
+    value: 75

@@ -42,7 +42,7 @@ class Receiver {
         }
     }
 
-    std::optional<Message> try_recv() noexcept {
+    std::optional<Message> tryRecv() noexcept {
         return state_->pop();
     }
     ~Receiver() = default;
@@ -61,23 +61,6 @@ class Sender {
 
   public:
     Sender() = default;
-    ~Sender() = default;
-    Sender(Sender&& other) noexcept : state_(std::move(other.state_)) {
-    }
-
-    Sender(const Sender& other) : state_(other.state_) {
-    }
-
-    Sender& operator=(Sender&& other) noexcept {
-        state_ = std::move(other.state_);
-        return *this;
-    }
-
-    Sender& operator=(const Sender& other) {
-        state_ = other.state_;
-        return *this;
-    }
-
     void send(Message&& message) const noexcept {
         state_->push(std::move(message));
         state_->notify();

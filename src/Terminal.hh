@@ -14,10 +14,11 @@ class Terminal {
         unsigned x;
         unsigned y;
 
-        Cursor(unsigned xx, unsigned yy) noexcept : x(xx), y(yy) {
+        Cursor(unsigned xvalue, unsigned yvalue) noexcept :
+            x(xvalue), y(yvalue) {
         }
 
-        explicit Cursor(unsigned yy) noexcept : x(0), y(yy) {
+        explicit Cursor(unsigned yvalue) noexcept : x(0), y(yvalue) {
         }
     };
 
@@ -35,7 +36,7 @@ class Terminal {
 
     class Plane {
         class Impl;
-        PImpl<Impl, 48, 8> impl_;
+        PImpl<Impl, 48, 8> impl_;  // NOLINT(readability-magic-numbers)
         explicit Plane(const Bounds& pos) noexcept;
         friend class Terminal;
 
@@ -54,9 +55,9 @@ class Terminal {
 
         Plane& operator<<(CSI csi) noexcept;
         Plane& operator<<(const Cursor& cursor) noexcept;
-        Plane& operator<<(const Element element) noexcept;
-        Plane& operator<<(std::wstring_view s) noexcept;
-        Plane& operator<<(wchar_t c) noexcept;
+        Plane& operator<<(Element element) noexcept;
+        Plane& operator<<(std::wstring_view str) noexcept;
+        Plane& operator<<(wchar_t symbol) noexcept;
     };
     Terminal(const Terminal&) = delete;
     Terminal(Terminal&&) = delete;
@@ -65,12 +66,12 @@ class Terminal {
     ~Terminal();
 
     Terminal& operator<<(const Plane& plane) noexcept;
-    Plane createPlane(const Bounds& pos);
-    void render() const noexcept;
-    [[nodiscard]] Size size() const noexcept;
+    Plane createPlane(const Bounds& pos) noexcept;
+    static Size size() noexcept;
+    static void render() noexcept;
 
+    static void loadTheme(const char* path);
     static unsigned width(std::wstring_view str) noexcept;
 };
 
 Terminal& term();
-void loadTheme(const char* path);

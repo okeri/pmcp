@@ -7,14 +7,14 @@ template <class Data>
 class AtomicLifo {
     struct Node {
         Data data;
-        Node* next;
+        Node* next{nullptr};
     };
 
     std::atomic<Node*> head_{nullptr};
 
   public:
     void push(Data&& data) {
-        auto node = new Node;
+        auto* node = new Node;  // NOLINT
         node->data = std::move(data);
         node->next = head_.load(std::memory_order::acquire);
         while (!head_.compare_exchange_weak(node->next, node)) {
@@ -26,7 +26,7 @@ class AtomicLifo {
             while (!head_.compare_exchange_weak(head, head->next)) {
             }
             auto data = std::move(head->data);
-            delete head;
+            delete head;  // NOLINT
             return data;
         }
         return {};

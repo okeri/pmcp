@@ -4,11 +4,11 @@
 #include "Scrollable.hh"
 
 template <class Object>
-concept Renderable = requires(Object& o) {
-                         { ui::render(o, std::declval<Terminal::Plane&>()) };
-                     };
+concept Renderable = requires(Object& obj) {
+    { ui::render(obj, std::declval<Terminal::Plane&>()) };
+};
 
-struct IWidget {  // NOLINT(hicpp-special-member-functions)
+struct IWidget {  // NOLINT(cppcoreguidelines-special-member-functions)
     virtual void render(Terminal::Plane& plane) = 0;
     virtual void up(unsigned offset) noexcept = 0;
     virtual void down(unsigned offset) noexcept = 0;

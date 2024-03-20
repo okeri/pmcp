@@ -15,7 +15,7 @@ class Server {
     Server& operator=(const Server&) = delete;
     Server& operator=(Server&&) = delete;
     [[nodiscard]] int socket() const noexcept;
-    [[nodiscard]] std::optional<Action> read(int client) const noexcept;
+    static std::optional<Action> read(int client) noexcept;
     [[nodiscard]] int accept() const noexcept;
     ~Server();
 };

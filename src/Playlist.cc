@@ -5,32 +5,36 @@
 #include <fileref.h>
 #include <tag.h>
 
+#include "Config.hh"
 #include "Playlist.hh"
 #include "utf8.hh"
 
 namespace fs = std::filesystem;
 
-Playlist::Entry::Entry(const std::string& p, bool isDir) {
+Playlist::Entry::Entry(const std::string& filePath, bool isDir) {
     if (!isDir) {
-        path = p;
-        TagLib::FileRef f(p.c_str());
-        if (!f.isNull() && f.tag() && f.audioProperties()) {
-            title = f.tag()->artist().toWString() + L" - " +
-                    f.tag()->title().toCWString();
-            duration = f.audioProperties()->lengthInSeconds();
+        path = filePath;
+        const TagLib::FileRef file(filePath.c_str());
+        if (!file.isNull() && file.tag() != nullptr &&
+            file.audioProperties() != nullptr) {
+            title = file.tag()->artist().toWString() + L" - " +
+                    file.tag()->title().toCWString();
+            duration = file.audioProperties()->lengthInSeconds();
         } else {
-            title = fs::path(p).stem().wstring();
+            title = fs::path(filePath).stem().wstring();
             duration = 0;
         }
     } else {
         title = L"../";
-        path = fs::path(p).parent_path().string();
+        path = fs::path(filePath).parent_path().string();
     }
 }
 
-Playlist::Entry::Entry(
-    std::wstring t, std::string p, std::optional<unsigned> d) :
-    title(std::move(t)), path(std::move(p)), duration(d) {
+Playlist::Entry::Entry(std::wstring songTitle, std::string filePath,
+    std::optional<unsigned> songDuration) :
+    title(std::move(songTitle)),
+    path(std::move(filePath)),
+    duration(songDuration) {
 }
 
 bool Playlist::Entry::isDir() const noexcept {
@@ -45,8 +49,7 @@ auto Playlist::Entry::operator<=>(const Entry& other) const {
     return title <=> other.title;
 }
 
-Playlist::Playlist(std::vector<Entry> items, const Config& config) :
-    config_(config), items_(std::move(items)) {
+Playlist::Playlist(std::vector<Entry> items) : items_(std::move(items)) {
     home(true);
 }
 
@@ -150,30 +153,31 @@ std::vector<Playlist::Entry> Playlist::recursiveCollect(unsigned index) {
         return {entry};
     }
     std::vector<Playlist::Entry> result;
-    for (auto e : fs::recursive_directory_iterator(entry.path)) {
-        if (!e.is_directory() &&
-            (config_.whiteList.empty() ||
-                config_.whiteList.contains(e.path().extension().string()))) {
-            result.emplace_back(e.path().string(), false);
+    for (const auto& entry : fs::recursive_directory_iterator(entry.path)) {
+        if (!entry.is_directory() &&
+            (config().whiteList.empty() ||
+                config().whiteList.contains(
+                    entry.path().extension().string()))) {
+            result.emplace_back(entry.path().string(), false);
         }
     }
     std::sort(result.begin(), result.end());
     return result;
 }
 
-std::vector<Playlist::Entry> Playlist::collect(
-    const std::string& path, const Config& config) {
+std::vector<Playlist::Entry> Playlist::collect(const std::string& path) {
     std::vector<Playlist::Entry> result;
     if (path != "/") {
         result.emplace_back(path, true);
     }
-    for (auto e : fs::directory_iterator(path)) {
-        if (e.is_directory()) {
-            result.emplace_back(e.path().filename().wstring() + L'/',
-                e.path().string(), std::nullopt);
-        } else if (config.whiteList.empty() ||
-                   config.whiteList.contains(e.path().extension().string())) {
-            result.emplace_back(e.path().string(), false);
+    for (const auto& entry : fs::directory_iterator(path)) {
+        if (entry.is_directory()) {
+            result.emplace_back(entry.path().filename().wstring() + L'/',
+                entry.path().string(), std::nullopt);
+        } else if (config().whiteList.empty() ||
+                   config().whiteList.contains(
+                       entry.path().extension().string())) {
+            result.emplace_back(entry.path().string(), false);
         }
     }
     std::sort(result.begin(), result.end());
@@ -181,23 +185,26 @@ std::vector<Playlist::Entry> Playlist::collect(
 }
 
 void Playlist::listDir(const std::string& path) {
-    items_ = collect(path, config_);
+    items_ = collect(path);
 }
 
-Playlist Playlist::scan(const std::string& path, const Config& config) {
-    return {collect(path, config), config};
+Playlist Playlist::scan(const std::string& path) {
+    return Playlist(collect(path));
 }
 
-Playlist Playlist::load(const std::string& path, const Config& config) {
+Playlist Playlist::load(const std::string& path) {
     std::vector<Entry> entries;
     if (auto input = std::ifstream(path)) {
         std::string line;
+        unsigned dur{};
         Entry entry(path, true);
         while (std::getline(input, line)) {
-            if (line.length() > 8 && line.compare(0, 8, "#EXTINF:") == 0) {
+            constexpr auto ExtInfLen = 8;
+            if (line.length() > ExtInfLen &&
+                line.compare(0, ExtInfLen, "#EXTINF:") == 0) {
                 if (auto end = line.find(','); end != std::string::npos) {
-                    unsigned dur;
-                    std::from_chars(line.c_str() + 8, line.c_str() + end, dur);
+                    std::from_chars(
+                        line.c_str() + ExtInfLen, line.c_str() + end, dur);
                     entry.duration = dur;
                     entry.title = utf8::convert(line.substr(end + 1));
                 }
@@ -207,15 +214,16 @@ Playlist Playlist::load(const std::string& path, const Config& config) {
             }
         }
     }
-    return {entries, config};
+    return Playlist(entries);
 }
 
 void Playlist::save(const std::string& path) {
-    auto filename = path.empty() ? config_.playlistPath : path;
+    auto filename = path.empty() ? config().playlistPath : path;
     std::ofstream output(filename);
     output << "#EXTM3U" << std::endl;
     for (const auto& item : items_) {
         if (!item.isDir()) {
+            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
             output << "#EXTINF:" << *item.duration << ","
                    << utf8::convert(item.title) << std::endl;
             output << item.path << std::endl;

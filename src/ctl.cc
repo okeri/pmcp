@@ -14,15 +14,15 @@ class Client {
     int socket_;
 
   public:
-    explicit Client(const std::string& path) {
+    explicit Client(const std::string& path) :
+        socket_(socket(AF_UNIX, SOCK_STREAM, 0)) {
         auto addr = sockaddr_un{};
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path));
-        socket_ = socket(AF_UNIX, SOCK_STREAM, 0);
         if (socket_ < 0) {
             throw std::runtime_error("cannot create socket");
         }
-
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         if (connect(socket_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) <
             0) {
             close(socket_);
@@ -39,19 +39,18 @@ class Client {
         close(socket_);
     }
 
-    void send(Action action) {
+    void send(Action action) const {
         ::send(socket_, &action, sizeof(action), 0);
     }
 };
 
 std::string sockPath() {
     const auto* runtimePath =
-        getenv("XDG_RUNTIME_DIR");  // NOLINT:concurrency-mt-unsafe
+        getenv("XDG_RUNTIME_DIR");  // NOLINT(concurrency-mt-unsafe)
     if (runtimePath != nullptr) {
         return (std::filesystem::path(runtimePath) / "pmcp.sock").string();
-    } else {
-        return "/tmp/pmcp.sock";
     }
+    return "/tmp/pmcp.sock";
 }
 
 int main(int argc, char* argv[]) {
@@ -61,7 +60,7 @@ int main(int argc, char* argv[]) {
 
     auto usage = [&actionMap](const char* name) {
         std::cout << "usage:" << name << " <";
-        std::string sep = "";
+        std::string sep{};
         for (const auto& [k, _] : actionMap) {
             std::cout << sep << k;
             sep = "|";
@@ -75,15 +74,18 @@ int main(int argc, char* argv[]) {
     }
     auto cmd = std::string(argv[1]);
     std::transform(cmd.begin(), cmd.end(), cmd.begin(),
-        [](unsigned char c) { return std::tolower(c); });
+        [](unsigned char sym) { return std::tolower(sym); });
 
     auto found = actionMap.find(cmd);
     if (found == actionMap.end()) {
         usage(argv[0]);
         return -2;
     }
-
-    auto client = Client(sockPath());
-    client.send(found->second);
+    try {
+        auto client = Client(sockPath());
+        client.send(found->second);
+    } catch (std::runtime_error& e) {
+        std::cout << e.what() << std::endl;
+    }
     return 0;
 }

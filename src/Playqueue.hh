@@ -11,8 +11,12 @@ struct Entry {
     std::wstring title;
     std::string path;
 
-    Entry(unsigned i, unsigned d, std::wstring t, std::string p) :
-        id(i), duration(d), title(std::move(t)), path(std::move(p)) {
+    Entry(unsigned ident, unsigned dur, std::wstring songTitle,
+        std::string filePath) :
+        id(ident),
+        duration(dur),
+        title(std::move(songTitle)),
+        path(std::move(filePath)) {
     }
     auto operator<=>(const Entry&) const = default;
 };

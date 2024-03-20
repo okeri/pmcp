@@ -5,7 +5,7 @@
 #include "utf8.hh"
 
 namespace {
-static std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;  // NOLINT
 }  // namespace
 
 namespace utf8 {

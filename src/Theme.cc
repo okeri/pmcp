@@ -10,9 +10,9 @@ namespace {
 std::optional<unsigned> parseInt(const std::string& strVal) {
     const auto* start = strVal.c_str();
     const auto* end = strVal.c_str() + strVal.size();
-
+    // NOLINTBEGIN(readability-magic-numbers)
     int base = 10;
-    while (isblank(*start) && start < end) {
+    while (isblank(*start) != 0 && start < end) {
         start++;
     }
     if (end - start > 1) {
@@ -25,16 +25,18 @@ std::optional<unsigned> parseInt(const std::string& strVal) {
         }
     }
 
-    unsigned uintVal;
+    unsigned uintVal{};
     auto err = std::from_chars(start, end, uintVal, base);
     if (err.ec == std::errc()) {
         return uintVal;
-    } else if (base == 10) {
+    }
+    if (base == 10) {
         err = std::from_chars(start, end, uintVal, 16);
         return (
             err.ec == std::errc() ? std::make_optional(uintVal) : std::nullopt);
     }
     return {};
+    // NOLINTEND(readability-magic-numbers)
 }
 
 }  // namespace
@@ -43,15 +45,15 @@ Theme::Theme() : styles_(cast(Element::Count)) {
 }
 
 void Theme::load(const char* path) {
-    constexpr auto stdColorCount = 16;
+    constexpr auto StdColorCount = 16;
     // support 8bit and 24bit format as well as some readable aliases
-    std::array<std::string, stdColorCount> stdColors = {"black", "red", "green",
+    std::array<std::string, StdColorCount> stdColors = {"black", "red", "green",
         "yellow", "blue", "magenta", "cyan", "white", "brightblack",
         "brightred", "brightgreen", "brightyellow", "brightblue",
         "brightmagenta", "brightcyan", "brightwhite"};
 
     auto parseColor = [&stdColors](const std::string& strVal) -> Color {
-        if (auto clrIt = std::find(stdColors.begin(), stdColors.end(), strVal);
+        if (auto* clrIt = std::find(stdColors.begin(), stdColors.end(), strVal);
             clrIt != stdColors.end()) {
             return static_cast<unsigned char>(
                 std::distance(stdColors.begin(), clrIt));
@@ -59,11 +61,11 @@ void Theme::load(const char* path) {
 
         if (auto uintValMaybe = parseInt(strVal)) {
             auto value = *uintValMaybe;
-            if (strVal.length() < 4 && value < 0xff) {
+            constexpr auto MaxValueForByte = 0xFF;
+            if (strVal.length() < 4 && value <= MaxValueForByte) {
                 return static_cast<unsigned char>(value);
-            } else {
-                return value;
             }
+            return value;
         }
         return {};
     };
@@ -85,13 +87,13 @@ void Theme::load(const char* path) {
     auto parseStyle = [&parseColor, &parseDecoration](
                           const Toml& entry) -> Style {
         auto result = Style();
-        if (auto fg = entry.get<std::string>("fg")) {
-            if (auto color = parseColor(*fg); color.index() > 0) {
+        if (auto foreground = entry.get<std::string>("fg")) {
+            if (auto color = parseColor(*foreground); color.index() > 0) {
                 result.fg = color;
             }
         }
-        if (auto bg = entry.get<std::string>("bg")) {
-            if (auto color = parseColor(*bg); color.index() > 0) {
+        if (auto background = entry.get<std::string>("bg")) {
+            if (auto color = parseColor(*background); color.index() > 0) {
                 result.bg = color;
             }
         }
@@ -126,6 +128,7 @@ void Theme::load(const char* path) {
             }
         }
     } else {
+        // NOLINTBEGIN(readability-magic-numbers)
         self.styles_ = {{{}, {}, Decoration::None}, {{}, {}, Decoration::Dim},
             {static_cast<unsigned char>(4), {}, Decoration::None},
             {{}, {}, Decoration::Dim}, {{}, {}, Decoration::None},
@@ -149,6 +152,7 @@ void Theme::load(const char* path) {
             {{}, {}, Decoration::Dim},
             {{}, static_cast<unsigned char>(4), Decoration::Bold},
             {static_cast<unsigned char>(1), {}, Decoration::None}};
+        // NOLINTEND(readability-magic-numbers)
     }
 
     if (auto line = root["line"]) {
@@ -158,7 +162,8 @@ void Theme::load(const char* path) {
             }
         });
     }
-    if (self.lineChars_.size() != 6) {
+    constexpr auto LineCharsCount = 6;
+    if (self.lineChars_.size() != LineCharsCount) {
         self.lineChars_ = {L'│', L'─', L'╭', L'╮', L'╰', L'╯'};
     }
 
@@ -211,9 +216,9 @@ const Theme::Style& Theme::style(Element element) {
     return instance().styles_[cast(element)];
 }
 
-wchar_t Theme::lineChar(LineType t) {
+wchar_t Theme::lineChar(LineType lineType) {
     return instance()
-        .lineChars_[static_cast<std::underlying_type_t<LineType>>(t)];
+        .lineChars_[static_cast<std::underlying_type_t<LineType>>(lineType)];
 }
 
 Theme& Theme::instance() {

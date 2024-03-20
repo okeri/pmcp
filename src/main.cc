@@ -7,6 +7,7 @@
 #include "Status.hh"
 #include "Widget.hh"
 #include "Spectralizer.hh"
+#include "Config.hh"
 
 class App {
     enum class DrawFlags : unsigned {
@@ -16,7 +17,6 @@ class App {
         Spectre = 0x4,
         All = 0x7
     };
-    Config& config_;
     const Keymap& keymap_;
     unsigned pageSize_{0};
     std::array<Terminal::Plane, 3> planes_;
@@ -29,13 +29,15 @@ class App {
     IWidget* activeContent_;
 
     void resize() noexcept {
-        auto size = term().size();
-        auto statusSize = config_.options.showProgress ? 2u : 1u;
+        auto size = Terminal::size();
+        auto statusSize = config().options.showProgress ? 2U : 1U;
         auto contentSize = size.rows - statusSize;
 #ifdef ENABLE_SPECTRALIZER
-        auto spectrSize = config_.options.spectralizer && contentSize > 15
-                              ? std::max(5u, contentSize / 3)
+        // NOLINTBEGIN(readability-magic-numbers)
+        auto spectrSize = config().options.spectralizer && contentSize > 15
+                              ? std::max(5U, contentSize / 3)
                               : 0;
+        // NOLINTEND(readability-magic-numbers)
         contentSize -= spectrSize;
 #else
         constexpr auto spectrSize = 0u;
@@ -47,34 +49,32 @@ class App {
     }
 
   public:
-    App(Sender<Msg> sender, Config& config, const Keymap& keymap, int argc,
-        char* argv[]) :
-        config_(config),
+    App(Sender<Msg> sender, const Keymap& keymap, int argc,
+        char* argv[]) noexcept :
         keymap_(keymap),
         planes_(
             {term().createPlane({0, 0, 0, 0}), term().createPlane({0, 0, 0, 0}),
                 term().createPlane({0, 0, 0, 0})}),
-        player_(sender, config_.options, argc, argv),
-        playview_(config_),
+        player_(sender, argc, argv),
         help_(keymap),
-        lyrics_(std::move(sender), config_.lyricsProvider, config_.lyricsPath),
+        lyrics_(std::move(sender), config().lyricsProvider, config().lyricsPath),
         spectre_(player_.state(),
             [this](unsigned count) { player_.setBinCount(count); }),
-        status_(config_, player_.state(), player_.streamParams()),
+        status_(player_.state(), player_.streamParams()),
         activeContent_(&playview_) {
         resize();
         render(DrawFlags::All);
     }
 
     void updateLyricsSong(const Entry* entry) {
-        if (entry) {
+        if (entry != nullptr) {
             lyrics_->setSong(entry->title);
         } else {
             lyrics_->setSong(L"");
         }
     }
 
-    DrawFlags handleAction(Action action) {
+    DrawFlags handleAction(Action action) {  // NOLINT(misc-no-recursion)
         auto setActive = [this](auto& widget) { activeContent_ = &widget; };
         auto modVolume = [this](double perc) {
             auto vol = player_.streamParams().volume;
@@ -157,22 +157,22 @@ class App {
                 break;
 
             case Action::ToggleProgress:
-                config_.options.showProgress = !config_.options.showProgress;
+                config().options.showProgress = !config().options.showProgress;
                 resize();
                 result = DrawFlags::All;
                 break;
 
             case Action::ToggleShuffle:
-                config_.options.shuffle = !config_.options.shuffle;
+                config().options.shuffle = !config().options.shuffle;
                 player_.updateShuffleQueue();
                 break;
 
             case Action::ToggleRepeat:
-                config_.options.repeat = !config_.options.repeat;
+                config().options.repeat = !config().options.repeat;
                 break;
 
             case Action::ToggleNext:
-                config_.options.next = !config_.options.next;
+                config().options.next = !config().options.next;
                 break;
 
             case Action::AddToPlaylist:
@@ -196,10 +196,10 @@ class App {
                     lyrics_->activate(false);
                 } else {
                     if (player_.currentEntry() == nullptr) {
-                        auto& pl =
-                            playview_->operator[](playview_->playlistActive());
-                        if (auto sel = pl.selectedIndex()) {
-                            lyrics_->setSong(pl[*sel].title);
+                        auto& playList = playview_->operator[](
+                            static_cast<int>(playview_->playlistActive()));
+                        if (auto sel = playList.selectedIndex()) {
+                            lyrics_->setSong(playList[*sel].title);
                         }
                     }
                     lyrics_->activate(true);
@@ -231,11 +231,12 @@ class App {
                 break;
 
             case Action::ToggleSpectralizer:
-                config_.options.spectralizer = !config_.options.spectralizer;
+                config().options.spectralizer = !config().options.spectralizer;
                 resize();
                 result = DrawFlags::All;
                 break;
 
+                // NOLINTBEGIN(readability-magic-numbers)
             case Action::VolUp1:
                 modVolume(0.01);
                 break;
@@ -291,6 +292,7 @@ class App {
             case Action::VolSet100:
                 player_.setVolume(1.0);
                 break;
+                // NOLINTEND(readability-magic-numbers)
 
             case Action::Quit:
             case Action::Count:
@@ -323,7 +325,7 @@ class App {
                     }
 #ifdef ENABLE_SPECTRALIZER
                 } else if constexpr (std::is_same<Type, std::vector<float>>()) {
-                    spectre_->applyBins(std::move(value));
+                    spectre_->applyBins(std::forward<decltype(value)>(value));
                     drawFlags = DrawFlags::Spectre;
 #endif
                 } else if constexpr (std::is_same<Type, Action>()) {
@@ -346,7 +348,7 @@ class App {
             term() << planes_[0];
         }
 #ifdef ENABLE_SPECTRALIZER
-        if (hasFlag(DrawFlags::Spectre) && config_.options.spectralizer) {
+        if (hasFlag(DrawFlags::Spectre) && config().options.spectralizer) {
             spectre_.render(planes_[1]);
             term() << planes_[1];
         }
@@ -355,18 +357,17 @@ class App {
             status_.render(planes_[2]);
             term() << planes_[2];
         }
-        term().render();
+        Terminal::render();
     }
 };
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) try {
     auto [sender, receiver] = channel<Msg>();
-    auto config = Config();
-    loadTheme(config.themePath.c_str());
-
-    auto keymap = Keymap(config.keymapPath);
-    auto eventLoop = EventLoop(sender, keymap, config.socketPath.c_str());
-    auto app = App(sender, config, keymap, argc, argv);
+    auto& conf = config();
+    Terminal::loadTheme(conf.themePath.c_str());
+    auto keymap = Keymap(conf.keymapPath);
+    auto eventLoop = EventLoop(sender, keymap, conf.socketPath.c_str());
+    auto app = App(sender, keymap, argc, argv);
 
     auto doQuit = [&keymap](const Msg& msg) {
         return std::visit(
@@ -388,10 +389,11 @@ int main(int argc, char* argv[]) {
         auto msg = receiver.recv();
         app.handleEvent(msg);
         if (doQuit(msg)) {
-            while (receiver.try_recv()) {
+            while (receiver.tryRecv()) {
             }
             break;
         }
     }
     return 0;
+} catch (std::exception& error) {
 }

@@ -8,6 +8,7 @@
 #include "Help.hh"
 #include "Status.hh"
 #include "Spectralizer.hh"
+#include "Config.hh"
 
 namespace {
 
@@ -58,17 +59,18 @@ using Cursor = Terminal::Cursor;
 using CSI = Terminal::Plane::CSI;
 using State = Player::State;
 
-constexpr auto MinWidth = 42u;
+constexpr auto MinWidth = 42U;
+constexpr auto SecPerMin = 60;
 
-void render(Playlist& pl, Terminal::Plane& plane, const wchar_t* caption,
+void render(Playlist& playlist, Terminal::Plane& plane, const wchar_t* caption,
     bool active, bool numbers, unsigned left, unsigned top, unsigned cols,
-    unsigned rows) noexcept {
-    auto sel = pl.selectedIndex();
-    auto play = pl.playingIndex();
+    unsigned rows) {
+    auto sel = playlist.selectedIndex();
+    auto play = playlist.playingIndex();
 
     auto entryStyle = [&active, &sel, &play](auto index) {
-        auto st = itemState(index, active, sel, play);
-        switch (st) {
+        auto state = itemState(index, active, sel, play);
+        switch (state) {
             case PlaylistItemState::Playing:
                 return Element::PlaylistPlaying;
             case PlaylistItemState::Selected:
@@ -98,8 +100,8 @@ void render(Playlist& pl, Terminal::Plane& plane, const wchar_t* caption,
 
     auto numWidth = [](unsigned number) {
         auto result = 1;
-        while (number > 9) {
-            number /= 10;
+        while (number > 9) {  // NOLINT(readability-magic-numbers)
+            number /= 10;     // NOLINT(readability-magic-numbers)
             ++result;
         }
         return result;
@@ -107,8 +109,9 @@ void render(Playlist& pl, Terminal::Plane& plane, const wchar_t* caption,
 
     auto bottom = top + rows;
     auto right = left + cols;
-    auto win = pl.scroll(top + 1, bottom - 1, pl.count(), pl.topElement());
-    auto numLen = numbers ? numWidth(win.end) : 0u;
+    auto win = playlist.scroll(
+        top + 1, bottom - 1, playlist.count(), playlist.topElement());
+    auto numLen = numbers ? numWidth(win.end) : 0U;
     for (auto itemIndex = win.start, yCursor = top + 1; itemIndex < win.end;
          ++itemIndex, ++yCursor) {
         plane << Cursor(left + 1, yCursor);
@@ -119,24 +122,28 @@ void render(Playlist& pl, Terminal::Plane& plane, const wchar_t* caption,
         }
         plane << entryStyle(itemIndex);
 
-        auto element = std::wstring_view(pl[itemIndex].title);
-        auto minutes =
-            pl[itemIndex].duration ? *pl[itemIndex].duration / 60 : 0u;
-        auto minutesLen =
-            pl[itemIndex].duration ? std::max(numWidth(minutes), 2) : 0u;
+        constexpr auto ExtraTimeLen = 6;  //' [:XX]'
+        const auto& song = playlist[itemIndex];
+        auto element = std::wstring_view(song.title);
+        auto minutes = song.duration ? song.duration.value() / SecPerMin : 0U;
+        auto totalTimeLen = playlist[itemIndex].duration
+                                ? std::max(numWidth(minutes), 2) + ExtraTimeLen
+                                : 0U;
 
-        auto maxElementLen = cols - numLen - minutesLen - 10;
+        auto maxElementLen =
+            cols - numLen - totalTimeLen - 3;  // borders and spaces
         if (Terminal::width(element) < maxElementLen) {
             plane << element;
         } else {
             plane << element.substr(0, maxElementLen);
         }
         plane << CSI::ClearDecoration;
-        if (pl[itemIndex].duration) {
-            auto dur = pl[itemIndex].duration.value();
-            plane << Cursor(right - 6 - minutesLen, yCursor)
+        if (playlist[itemIndex].duration) {
+            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+            auto dur = playlist[itemIndex].duration.value();
+            plane << Cursor(right - totalTimeLen, yCursor)
                   << timeStyle(itemIndex)
-                  << std::format(L"[{:02}:{:02}]", minutes, dur % 60);
+                  << std::format(L"[{:02}:{:02}]", minutes, dur % SecPerMin);
         }
     }
     plane.box(caption, Element::Title, {left, top, cols, rows},
@@ -148,9 +155,8 @@ void render(Status& status, Terminal::Plane& plane) {
         return std::visit(
             [](auto&& value) -> const Entry* {
                 using Type = std::decay_t<decltype(value)>;
-                if constexpr (std::is_same<Type, Player::Playing>()) {
-                    return &value.entry;
-                } else if constexpr (std::is_same<Type, Player::Paused>()) {
+                if constexpr (std::is_same<Type, Player::Playing>() ||
+                              std::is_same<Type, Player::Paused>()) {
                     return &value.entry;
                 } else {
                     return nullptr;
@@ -160,11 +166,12 @@ void render(Status& status, Terminal::Plane& plane) {
     };
     constexpr auto MinWidthWithTitle = 70;
     const auto& state = status.state();
-    const auto& config = status.config();
+    const auto& conf = config();
     const auto& params = status.streamParams();
     const auto* current = stateEntry(state);
 
     auto streamWidth = [](auto fmt) -> unsigned {
+        // NOLINTBEGIN(readability-magic-numbers)
         switch (fmt) {
             case SampleFormat::U8:
             case SampleFormat::S8:
@@ -181,6 +188,7 @@ void render(Status& status, Terminal::Plane& plane) {
             default:
                 return 0;
         }
+        // NOLINTEND(readability-magic-numbers)
     };
     plane << CSI::Clear;
     const auto& size = plane.size();
@@ -190,16 +198,16 @@ void render(Status& status, Terminal::Plane& plane) {
 
     auto renderStatusLine = [&]() {
         auto toMinSec = [](unsigned time) -> std::pair<unsigned, unsigned> {
-            return {time / 60, time % 60};
+            return {time / SecPerMin, time % SecPerMin};
         };
-        constexpr auto enabledElement = [](bool enable) {
+        auto enabledElement = [](bool enable) {
             return enable ? Element::Enabled : Element::Disabled;
         };
 
         auto curTime = current != nullptr ? toMinSec(status.progress())
-                                          : std::make_pair(0u, 0u);
+                                          : std::make_pair(0U, 0U);
         auto ttlTime = current != nullptr ? toMinSec(current->duration)
-                                          : std::make_pair(0u, 0u);
+                                          : std::make_pair(0U, 0U);
 
         plane << Element::StatusState << Theme::state(state.index()) << L' '
               << Element::StatusTimeBraces << L'[' << Element::StatusCurrentTime
@@ -207,35 +215,37 @@ void render(Status& status, Terminal::Plane& plane) {
               << Element::StatusTimeBraces << L'/' << Element::StatusTotalTime
               << std::format(L"{:02}:{:02}", ttlTime.first, ttlTime.second)
               << Element::StatusTimeBraces << L"] ";
-        if (!config.options.showProgress && current != nullptr) {
+        if (!conf.options.showProgress && current != nullptr) {
             plane << Element::StatusTitle
                   << std::wstring_view(current->title)
                          .substr(0, size.cols - MinWidthWithTitle)
                   << L' ';
         }
 
+        constexpr auto Kilo = 1000;
         if (params.format != SampleFormat::None) {
-            plane << Element::Enabled << std::to_wstring(params.rate / 1000)
+            plane << Element::Enabled << std::to_wstring(params.rate / Kilo)
                   << Element::Disabled << L"kHz " << Element::Enabled
                   << std::to_wstring(streamWidth(params.format))
                   << Element::Disabled << L"bit ";
         }
-        plane << enabledElement(config.options.shuffle) << L"[SHUFFLE] "
-              << enabledElement(config.options.repeat) << L"[REPEAT] "
-              << enabledElement(config.options.next) << L"[NEXT]";
+        plane << enabledElement(conf.options.shuffle) << L"[SHUFFLE] "
+              << enabledElement(conf.options.repeat) << L"[REPEAT] "
+              << enabledElement(conf.options.next) << L"[NEXT]";
 
         auto vol = status.streamParams().volume;
-        auto volWidth = 13;
-        auto start = plane.size().cols - volWidth;
+        constexpr auto VolumeWidth = 13;
+        auto start = plane.size().cols - VolumeWidth;
         if (start < MinWidth) {
             return;
         }
         plane << Cursor(start, 0) << Element::VolumeCaption << L"volume: "
               << Element::VolumeValue
-              << std::format(L"{: >3}%", static_cast<unsigned>(vol * 100));
+              << std::format(
+                     L"{: >3}%", static_cast<unsigned>(vol * 100));  // NOLINT
     };
-    auto stopped = std::get_if<Player::Stopped>(&state);
-    if (stopped == nullptr || stopped->error.empty()) {
+    const auto* stopped = std::get_if<Player::Stopped>(&state);
+    if (stopped == nullptr || stopped->error == nullptr) {
         renderStatusLine();
     } else {
         plane << Element::Error << stopped->error;
@@ -245,32 +255,32 @@ void render(Status& status, Terminal::Plane& plane) {
         if (current != nullptr) {
             auto progress = (size.cols) * status.progress() / current->duration;
             auto printProgress = [&plane](unsigned len) {
-                for (auto i = 0u; i < len; ++i) {
+                for (auto i = 0U; i < len; ++i) {
                     plane << L'█';
                 }
             };
 
-            constexpr auto startOffset = 1u;
-            auto before = std::min(progress, startOffset);
+            constexpr auto StartOffset = 1U;
+            auto before = std::min(progress, StartOffset);
             plane << Element::ProgressBar;
             plane << CSI::Invert;
             printProgress(before);
             plane << CSI::NoInvert;
-            for (auto i = before; i < startOffset; ++i) {
+            for (auto i = before; i < StartOffset; ++i) {
                 plane << L' ';
             }
 
             auto intitle =
                 std::min(static_cast<unsigned>(current->title.length()),
-                    progress > startOffset ? progress - startOffset : 0u);
+                    progress > StartOffset ? progress - StartOffset : 0U);
             if (intitle != 0) {
                 plane << std::wstring_view(current->title).substr(0, intitle);
             }
             plane << Element::Default
                   << std::wstring_view(current->title).substr(intitle);
-            if (progress > startOffset + Terminal::width(current->title)) {
+            if (progress > StartOffset + Terminal::width(current->title)) {
                 plane << Element::ProgressBar << CSI::Invert;
-                progress -= startOffset + Terminal::width(current->title);
+                progress -= StartOffset + Terminal::width(current->title);
                 printProgress(progress);
             }
         }
@@ -293,16 +303,17 @@ void render(PlayerView& view, Terminal::Plane& plane) {
 }
 
 void render(Help& help, Terminal::Plane& plane) {
+    constexpr auto FirstColumnWidth = 20;
     const auto& data = help.help();
     const auto& size = plane.size();
     plane << CSI::Clear;
     auto win = help.scroll(1, size.rows - 1, data.size());
-    for (auto itemIndex = win.start, yCursor = 1u; itemIndex < win.end;
+    for (auto itemIndex = win.start, yCursor = 1U; itemIndex < win.end;
          ++itemIndex, ++yCursor) {
         plane << Cursor(1, yCursor) << data[itemIndex].first
-              << Cursor(20, yCursor)
+              << Cursor(FirstColumnWidth, yCursor)
               << std::wstring_view(data[itemIndex].second)
-                     .substr(0, size.cols - 21);
+                     .substr(0, size.cols - FirstColumnWidth - 1);
     }
     plane.box(L"Key Bindings", Element::Title, {0, 0, size.cols, size.rows},
         Element::Frame);
@@ -333,44 +344,48 @@ void render(Spectralizer& spectres, Terminal::Plane& plane) {
         return;
     }
     if (std::get_if<Player::Playing>(&spectres.state()) != nullptr) {
+        constexpr auto MaxBarCount = 32U;
+        constexpr auto MinWidthBar = 4U;
         auto spectreWidth = size.cols - 2;
-        constexpr auto MinWidthBar = 4u;
         auto barWidth = MinWidthBar;
-        constexpr auto MaxBarCount = 32u;
         auto barCount = (spectreWidth + 1) / (barWidth + 1);
         while (barCount > MaxBarCount) {
             ++barWidth;
             barCount = (spectreWidth + 1) / (barWidth + 1);
         }
-        static std::array<wchar_t, 8> BarChars = {
+
+        // NOLINTBEGIN(readability-magic-numbers)
+        static std::array<wchar_t, 8> barChars = {
             L'▁', L'▂', L'▃', L'▄', L'▅', L'▆', L'▇', L'█'};
 
         auto drawBar = [&plane](unsigned xstart, unsigned width,
                            unsigned maxHeight, unsigned value) {
             auto fullRows = value >> 3;
             auto lastRow = value & 0x7;
-            for (auto i = 0u; i < fullRows; ++i) {
+            for (auto i = 0U; i < fullRows; ++i) {
                 plane << Cursor(xstart, maxHeight - i);
-                for (auto c = 0u; c < width; ++c) {
-                    plane << BarChars[7];
+                for (auto sym = 0U; sym < width; ++sym) {
+                    plane << barChars[7];
                 }
             }
             plane << Cursor(xstart, maxHeight - fullRows);
-            for (auto c = 0u; c < width; ++c) {
-                plane << BarChars[lastRow];
+            for (auto sym = 0U; sym < width; ++sym) {
+                plane << barChars[lastRow];
             }
         };
+        // NOLINTEND(readability-magic-numbers)
         auto extra = spectreWidth - ((barWidth + 1) * barCount - 1);
-        auto xstart = 1u + extra / 2;
+        auto xstart = 1U + extra / 2;
         auto maxHeight = size.rows - 2;
         auto maxValue = maxHeight << 3;
         if (spectres.bins().size() == barCount) {
             for (const auto& bin : spectres.bins()) {
-                drawBar(xstart, barWidth, maxHeight, maxValue * bin);
+                drawBar(xstart, barWidth, maxHeight,
+                    static_cast<unsigned>(static_cast<float>(maxValue) * bin));
                 xstart += barWidth + 1;
             }
         } else {
-            for (auto i = 0u; i < barCount; ++i) {
+            for (auto i = 0U; i < barCount; ++i) {
                 drawBar(xstart, barWidth, maxHeight, 1);
                 xstart += barWidth + 1;
             }

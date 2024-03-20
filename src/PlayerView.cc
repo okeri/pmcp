@@ -1,10 +1,11 @@
 #include "PlayerView.hh"
 #include "utf8.hh"
+#include "Config.hh"
 
-PlayerView::PlayerView(const Config& config) :
-    path_(utf8::convert(config.home)),
-    lists_({Playlist::scan(config.home, config),
-        Playlist::load(config.playlistPath, config)}),
+PlayerView::PlayerView() noexcept :
+    path_(utf8::convert(config().home)),
+    lists_({Playlist::scan(config().home),
+        Playlist::load(config().playlistPath)}),
     playlistActive_(lists_[1].count() != 0) {
 }
 
@@ -69,7 +70,7 @@ std::optional<Playqueue> PlayerView::enter() noexcept {
             path_ = utf8::convert(newpath);
             list.listDir(newpath);
             if (newsel) {
-                for (auto i = 0u; i < list.count(); ++i) {
+                for (auto i = 0U; i < list.count(); ++i) {
                     if (list[i].path == *newsel) {
                         list.select(i);
                         break;
@@ -79,20 +80,21 @@ std::optional<Playqueue> PlayerView::enter() noexcept {
                 list.home(true);
             }
         } else {
-            std::vector<Entry> qi;
+            std::vector<Entry> qItems;
             auto index = 0;
             playlistQueued_ = playlistActive_ ? 1 : 0;
-            for (auto i = 0u; i < list.count(); ++i) {
+            for (auto i = 0U; i < list.count(); ++i) {
                 const auto& item = list[i];
                 if (!item.isDir()) {
-                    qi.emplace_back(
-                        i, item.duration.value(), item.title, item.path);
+                    qItems.emplace_back(
+                        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+                        i, *item.duration, item.title, item.path);
                     if (i == *sel) {
-                        index = qi.size() - 1;
+                        index = static_cast<int>(qItems.size() - 1);
                     }
                 }
             }
-            return Playqueue(std::move(qi), index);
+            return Playqueue(std::move(qItems), index);
         }
     }
     return {};
@@ -102,7 +104,7 @@ void PlayerView::markPlaying(const std::optional<unsigned>& id) noexcept {
     lists_[0].setPlaying(std::nullopt);
     lists_[1].setPlaying(std::nullopt);
     if (playlistQueued_ > -1) {
-        lists_[playlistQueued_ ? 1 : 0].setPlaying(id);
+        lists_[playlistQueued_].setPlaying(id);
     }
 }
 

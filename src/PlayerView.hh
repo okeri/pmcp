@@ -4,7 +4,6 @@
 #include <string>
 
 #include "Playlist.hh"
-#include "Config.hh"
 #include "Playqueue.hh"
 #include "Scrollable.hh"
 
@@ -19,7 +18,7 @@ class PlayerView {
     Playlist& activeList() noexcept;
 
   public:
-    explicit PlayerView(const Config& config);
+    explicit PlayerView() noexcept;
     PlayerView(const PlayerView&) = delete;
     PlayerView(PlayerView&&) = delete;
     PlayerView& operator=(const PlayerView&) = delete;

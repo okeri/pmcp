@@ -8,9 +8,10 @@
 namespace input {
 
 Key read() noexcept {
-    char buffer[8] = {0};
+    constexpr auto BufferSize = 8;
+    char buffer[BufferSize] = {0};
     auto num = ::read(STDIN_FILENO, buffer, sizeof(buffer));
-    static std::unordered_map<std::string_view, Key> seqtable = {
+    static std::unordered_map<std::string_view, Key> seqTable = {
         {"A", Up},
         {"B", Down},
         {"C", Right},
@@ -58,12 +59,13 @@ Key read() noexcept {
     };
 
     auto lookupCSI = [](std::string_view csi) {
-        auto found = seqtable.find(csi);
-        if (found != seqtable.end()) {
+        auto found = seqTable.find(csi);
+        if (found != seqTable.end()) {
             return found->second;
         }
         return Null;
     };
+    // NOLINTBEGIN(readability-magic-numbers)
     switch (buffer[0]) {
         case 0x1b:
             if (num == 1) {
@@ -94,6 +96,7 @@ Key read() noexcept {
             }
             return static_cast<Key>(buffer[0]);
     }
+    // NOLINTEND(readability-magic-numbers)
 }
 
 }  // namespace input

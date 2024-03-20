@@ -1,7 +1,6 @@
 #pragma once
 
 #include "channel.hh"
-#include "Options.hh"
 #include "Playqueue.hh"
 #include "Source.hh"
 #include "Sink.hh"
@@ -18,7 +17,7 @@ class Player {
   public:
     enum : unsigned { EndOfSong = 0xffffffff, SeekSeconds = 10 };
     struct Stopped {
-        std::wstring error;
+        const wchar_t* error{nullptr};
     };
 
     struct Paused {
@@ -31,8 +30,7 @@ class Player {
 
     using State = std::variant<Stopped, Paused, Playing>;
 
-    Player(Sender<Msg> progressSender, const Options& opts, int argc,
-        char* argv[]) noexcept;
+    Player(Sender<Msg> progressSender, int argc, char* argv[]) noexcept;
 
     Player(const Player&) = delete;
     Player(Player&&) = delete;
@@ -40,11 +38,12 @@ class Player {
     Player& operator=(Player&&) = delete;
     ~Player();
 
-    const State& emit(Command cmd, std::optional<Playqueue>&& = std::nullopt);
+    const State& emit(
+        Command cmd, std::optional<Playqueue>&& queue = std::nullopt);
     [[nodiscard]] const State& state() const noexcept;
     [[nodiscard]] const StreamParams& streamParams() const noexcept;
-    [[nodiscard]] const Entry* currentEntry() const noexcept;
-    [[nodiscard]] std::optional<unsigned> currentId() const noexcept;
+    [[nodiscard]] const Entry* currentEntry() const;
+    [[nodiscard]] std::optional<unsigned> currentId() const;
 
     void setVolume(double volume) noexcept;
     void clearQueue() noexcept;
@@ -54,7 +53,6 @@ class Player {
     void setBinCount(unsigned count) noexcept;
 
   private:
-    const Options& opts_;
     State state_;
     Source decoder_;
     StreamParams params_;
@@ -62,9 +60,9 @@ class Player {
     std::optional<Playqueue> queue_;
     long frames_{0};
     std::atomic_long framesDone_{0};
-    std::atomic_uint binCount_{8};
+    std::atomic_uint binCount_{8};  // NOLINT(readability-magic-numbers)
     long seekFrames_{0};
-    const State& start() noexcept;
-    void stop() noexcept;
+    const State& start();
+    void stop();
     [[nodiscard]] bool stopped() const noexcept;
 };

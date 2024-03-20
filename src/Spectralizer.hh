@@ -2,6 +2,8 @@
 
 class Spectralizer {
     using SetBinCountFn = std::function<void(unsigned)>;
+    static constexpr auto DefaultBinCount = 8U;
+
     const Player::State& state_;
     SetBinCountFn setBinCount_;
     std::vector<float> bins_;
@@ -11,7 +13,7 @@ class Spectralizer {
         const Player::State& state, SetBinCountFn setBinCount) noexcept :
         state_(state),
         setBinCount_(std::move(setBinCount)),
-        bins_(std::vector<float>(8u, 0.f)) {
+        bins_(std::vector<float>(DefaultBinCount, 0.F)) {
     }
 
     [[nodiscard]] const Player::State& state() const noexcept {
@@ -23,16 +25,17 @@ class Spectralizer {
     }
 
     void applyBins(std::vector<float> bins) {
-        constexpr auto dropRate = 5.f;
         if (bins_.size() != bins.size()) {
             bins_ = std::move(bins);
+            return;
         }
-        for (auto i = 0ul; i < bins.size(); ++i) {
+        constexpr auto DropRate = 5.F;
+        for (auto i = 0UL; i < bins.size(); ++i) {
             auto diff = bins[i] - bins_[i];
             if (diff > 0) {
                 bins_[i] = bins[i];
             } else {
-                bins_[i] += diff / dropRate;
+                bins_[i] += diff / DropRate;
             }
         }
     }

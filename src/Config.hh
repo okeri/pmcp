@@ -23,3 +23,8 @@ struct Config {
     Config& operator=(Config&&) = delete;
     ~Config();
 };
+
+inline Config& config() {
+    static Config conf;
+    return conf;
+}

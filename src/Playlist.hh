@@ -2,9 +2,9 @@
 
 #include <optional>
 #include <vector>
+#include <string>
 
 #include "Scrollable.hh"
-#include "Config.hh"
 
 class Playlist final : public ScrollableElements {
   public:
@@ -13,18 +13,18 @@ class Playlist final : public ScrollableElements {
         std::string path;
         std::optional<unsigned> duration;
 
-        Entry(const std::string& path, bool isDir);
-        Entry(std::wstring t, std::string p, std::optional<unsigned> d);
+        Entry(const std::string& filePath, bool isDir);
+        Entry(std::wstring songTitle, std::string filePath,
+            std::optional<unsigned> songDuration);
         [[nodiscard]] bool isDir() const noexcept;
-        auto operator<=>(const Entry&) const;
+        auto operator<=>(const Entry& other) const;
     };
 
-    Playlist(std::vector<Entry> items, const Config& config);
+    explicit Playlist(std::vector<Entry> items);
 
-    static Playlist scan(const std::string& path, const Config& config);
-    static Playlist load(const std::string& path, const Config& config);
-    static std::vector<Entry> collect(
-        const std::string& path, const Config& config);
+    static Playlist scan(const std::string& path);
+    static Playlist load(const std::string& path);
+    static std::vector<Entry> collect(const std::string& path);
     void save(const std::string& path = "");
 
     void listDir(const std::string& path);
@@ -41,14 +41,13 @@ class Playlist final : public ScrollableElements {
 
     [[nodiscard]] unsigned topElement() const noexcept;
     [[nodiscard]] unsigned count() const noexcept;
-
     [[nodiscard]] std::optional<unsigned> selectedIndex() const noexcept;
     [[nodiscard]] std::optional<unsigned> playingIndex() const noexcept;
-    const Entry& operator[](unsigned) const noexcept;
+
+    const Entry& operator[](unsigned index) const noexcept;
     std::vector<Entry> recursiveCollect(unsigned index);
 
   private:
-    const Config& config_;
     std::optional<unsigned> selected_;
     std::optional<unsigned> playing_;
     std::vector<Entry> items_;

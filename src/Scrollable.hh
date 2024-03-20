@@ -10,12 +10,12 @@ struct ScrollWin {
 };
 
 template <class Object>
-concept Scrollable = requires(Object& o) {
-                         { o.up(std::declval<unsigned>()) };
-                         { o.down(std::declval<unsigned>()) };
-                         { o.home(std::declval<bool>()) };
-                         { o.end() };
-                     };
+concept Scrollable = requires(Object& obj) {
+    { obj.up(std::declval<unsigned>()) };
+    { obj.down(std::declval<unsigned>()) };
+    { obj.home(std::declval<bool>()) };
+    { obj.end() };
+};
 
 class ScrollableView {
     unsigned offset_{0};

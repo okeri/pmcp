@@ -45,7 +45,8 @@ void ScrollableView::home([[maybe_unused]] bool force) noexcept {
 }
 
 void ScrollableView::end() noexcept {
-    offset_ = 0xfffffff;
+    constexpr auto Bottom = 0xFFFFFFFF;
+    offset_ = Bottom;
 }
 
 ScrollWin ScrollableElements::scroll(unsigned top, unsigned bottom,

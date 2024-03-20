@@ -8,22 +8,24 @@ class PImpl {
     alignas(Align) std::byte data_[Len];
 
     T* ptr() noexcept {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return reinterpret_cast<T*>(data_);
     }
 
-    const T* ptr() const noexcept {
+    [[nodiscard]] const T* ptr() const noexcept {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return reinterpret_cast<const T*>(data_);
     }
 
   public:
     template <class... Args>
-    explicit PImpl(Args&&... args) {  // NOLINT:hicpp-member-init
+    explicit PImpl(Args&&... args) {  // NOLINT(hicpp-member-init)
         static_assert(Len == sizeof(T), "Len and sizeof(T) mismatch");
         static_assert(Align == alignof(T), "Align and alignof(T) mismatch");
         new (ptr()) T(std::forward<Args>(args)...);
     }
 
-    PImpl(PImpl&& other) noexcept {  // NOLINT:hicpp-member-init
+    PImpl(PImpl&& other) noexcept {  // NOLINT(hicpp-member-init)
         new (ptr()) T(std::move(*other.ptr()));
     }
 

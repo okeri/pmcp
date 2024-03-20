@@ -14,7 +14,7 @@ class Query {
     GlyrQuery query_;
 
   public:
-    Query() {  // NOLINT: hicpp-member-init
+    Query() {  // NOLINT(hicpp-member-init)
         glyr_query_init(&query_);
     }
     Query(const Query&) = delete;
@@ -26,7 +26,7 @@ class Query {
         glyr_query_destroy(&query_);
     }
 
-    operator GlyrQuery*() noexcept {  // NOLINT:hicpp-explicit-convertions
+    operator GlyrQuery*() noexcept {  // NOLINT(hicpp-explicit-conversions)
         return &query_;
     }
 };
@@ -42,7 +42,7 @@ class Fetcher {
     Fetcher& operator=(const Fetcher&) = delete;
     Fetcher& operator=(Fetcher&&) = delete;
 
-    std::optional<std::string> fetchLyrics(
+    static std::optional<std::string> fetchLyrics(
         const char* provider, const char* artist, const char* title) {
         Query query;
         glyr_opt_title(query, title);
@@ -54,7 +54,7 @@ class Fetcher {
 
         auto* cache = glyr_get(query, nullptr, nullptr);
         if (cache != nullptr && cache->size > 0) {
-            for (auto i = 0ull; i < cache->size; ++i) {
+            for (auto i = 0ULL; i < cache->size; ++i) {
                 if (cache->data[i] == '\r') {
                     cache->data[i] = '\n';
                 }
@@ -63,6 +63,7 @@ class Fetcher {
         }
         return {};
     }
+
     ~Fetcher() {
         glyr_cleanup();
     }
@@ -77,8 +78,8 @@ namespace render {
 template <class CharT, class Separator, class Handler>
 void split(std::basic_string_view<CharT> string, Separator separator,
     Handler handler) {
-    size_t start = 0ull;
-    size_t end;
+    size_t start = 0ULL;
+    size_t end = std::basic_string_view<CharT>::npos;
 
     while ((end = string.find(separator, start)) !=
            std::basic_string_view<CharT>::npos) {
@@ -113,7 +114,7 @@ std::vector<std::wstring> load(
     auto path = fs::path(lyricsPath) / (song + L".txt");
 
     if (auto input = std::ifstream(path.string())) {
-        std::string content((std::istreambuf_iterator<char>(input)),
+        const std::string content((std::istreambuf_iterator<char>(input)),
             std::istreambuf_iterator<char>());
         return render::simpleN(utf8::convert(content));
     }
@@ -132,8 +133,8 @@ void save(const std::wstring& lyricsPath, const std::wstring& song,
 
 }  // namespace local
 
-Lyrics::Lyrics(
-    Sender<Msg> progressSender, std::string provider, const std::string& path) :
+Lyrics::Lyrics(Sender<Msg> progressSender, std::string provider,
+    const std::string& path) noexcept :
     sender_(std::move(progressSender)),
     provider_(std::move(provider)),
     path_(utf8::convert(path)) {
@@ -180,7 +181,7 @@ void Lyrics::loadLyrics() {
         return;
     }
 #ifdef ENABLE_GLYR
-    static glyr::Fetcher fetcher;
+    static const glyr::Fetcher fetcher;
     error(L"Loading...");
     lock.unlock();
     std::thread([this]() {
@@ -190,10 +191,10 @@ void Lyrics::loadLyrics() {
                 components.emplace_back(begin, count);
             });
 
-        auto lyrics =
-            fetcher.fetchLyrics(provider_.empty() ? nullptr : provider_.c_str(),
-                components[0].c_str(), components[1].c_str());
-        std::lock_guard lock(mutex_);
+        auto lyrics = glyr::Fetcher::fetchLyrics(
+            provider_.empty() ? nullptr : provider_.c_str(),
+            components[0].c_str(), components[1].c_str());
+        const std::lock_guard lock(mutex_);
         if (lyrics) {
             text_ = render::simpleN(utf8::convert(lyrics.value()));
             local::save(path_, title_, text_);

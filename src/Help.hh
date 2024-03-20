@@ -10,7 +10,7 @@ class Help final : public ScrollableView {
     Data data_;
 
   public:
-    explicit Help(const Keymap& keymap);
+    explicit Help(const Keymap& keymap) noexcept;
 
     [[nodiscard]] const Data& help() const noexcept;
 };

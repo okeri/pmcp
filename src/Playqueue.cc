@@ -3,6 +3,23 @@
 
 #include "Playqueue.hh"
 
+namespace {
+
+template <class Action, class... Args>
+unsigned modify(
+    std::vector<Entry>& items, unsigned index, Action action, Args... args) {
+    auto id = items[index].id;
+    action(items.begin(), items.end(), std::forward<Args>(args)...);
+    auto found = std::find_if(items.begin(), items.end(),
+        [&id](const auto& item) { return item.id == id; });
+    if (found != items.end()) {
+        return std::distance(items.begin(), found);
+    }
+    return index;
+}
+
+}  // namespace
+
 Playqueue::Playqueue(std::vector<Entry>&& items, unsigned playing) noexcept :
     playing_(playing), items_(std::move(items)) {
 }
@@ -15,7 +32,8 @@ bool Playqueue::next(bool next, bool repeat) noexcept {
     if (next) {
         if (++playing_ < items_.size()) {
             return true;
-        } else if (repeat) {
+        }
+        if (repeat) {
             playing_ = 0;
             return true;
         }
@@ -27,43 +45,20 @@ bool Playqueue::prev(bool repeat) noexcept {
     if (playing_ > 0) {
         --playing_;
         return true;
-    } else if (repeat) {
+    }
+    if (repeat) {
         playing_ = items_.size() - 1;
         return true;
     }
     return false;
 }
 
-class HoldIndex {
-    unsigned id_;
-    unsigned& index_;
-    const std::vector<Entry>& items_;
-
-  public:
-    HoldIndex(const std::vector<Entry>& items, unsigned& index) :
-        id_(items[index].id), index_(index), items_(items) {
-    }
-
-    HoldIndex(const HoldIndex&) = delete;
-    HoldIndex(HoldIndex&&) = delete;
-    HoldIndex& operator=(const HoldIndex&) = delete;
-    HoldIndex& operator=(HoldIndex&&) = delete;
-
-    ~HoldIndex() {
-        auto found = std::find_if(items_.begin(), items_.end(),
-            [this](const auto& item) { return item.id == id_; });
-        if (found != items_.end()) {
-            index_ = std::distance(items_.begin(), found);
-        }
-    }
-};
 void Playqueue::shuffle() noexcept {
-    HoldIndex hold(items_, playing_);
     auto rng = std::default_random_engine{};
-    std::shuffle(items_.begin(), items_.end(), rng);
+    playing_ = modify(items_, playing_,
+        std::shuffle<decltype(items_)::iterator, decltype(rng)>, rng);
 }
 
 void Playqueue::sort() noexcept {
-    HoldIndex hold(items_, playing_);
-    std::sort(items_.begin(), items_.end());
+    playing_ = modify(items_, playing_, std::sort<decltype(items_)::iterator>);
 }

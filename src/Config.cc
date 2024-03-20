@@ -10,7 +10,7 @@ namespace fs = std::filesystem;
 namespace {
 
 std::string defaultHome() {
-    const auto* home = getenv("HOME");  // NOLINT:concurrency-mt-unsafe
+    const auto* home = getenv("HOME");  // NOLINT(concurrency-mt-unsafe)
     if (home == nullptr) {
         throw std::runtime_error("cannot detect home dir");
     }
@@ -19,22 +19,20 @@ std::string defaultHome() {
 
 std::string configPath() noexcept {
     const auto* configHome =
-        getenv("XDG_CONFIG_HOME");  // NOLINT:concurrency-mt-unsafe
+        getenv("XDG_CONFIG_HOME");  // NOLINT(concurrency-mt-unsafe)
     if (configHome != nullptr) {
         return (fs::path(configHome) / "pmcp").string();
-    } else {
-        return (fs::path(defaultHome()) / ".config" / "pmcp").string();
     }
+    return (fs::path(defaultHome()) / ".config" / "pmcp").string();
 }
 
 std::string sockPath() {
     const auto* runtimePath =
-        getenv("XDG_RUNTIME_DIR");  // NOLINT:concurrency-mt-unsafe
+        getenv("XDG_RUNTIME_DIR");  // NOLINT(concurrency-mt-unsafe)
     if (runtimePath != nullptr) {
         return (fs::path(runtimePath) / "pmcp.sock").string();
-    } else {
-        return "/tmp/pmcp.sock";
     }
+    return "/tmp/pmcp.sock";
 }
 
 }  // namespace
@@ -74,12 +72,12 @@ Config::Config() {
         tildaFixup(home);
     }
 
-    auto searchFullPath = [&confPath, &tildaFixup](const fs::path& p) {
-        auto full = confPath / p;
+    auto searchFullPath = [&confPath, &tildaFixup](const fs::path& path) {
+        auto full = confPath / path;
         if (fs::exists(full)) {
             return full.string();
         }
-        auto result = p.string();
+        auto result = path.string();
         tildaFixup(result);
         return result;
     };
@@ -93,9 +91,9 @@ Config::Config() {
     if (fs::exists(optsPath)) {
         auto root = Toml(optsPath);
         auto setBoolMaybe = [&root](bool& value, const std::string& key) {
-            auto v = root.get<bool>(key);
-            if (v) {
-                value = *v;
+            auto val = root.get<bool>(key);
+            if (val) {
+                value = *val;
             }
         };
         setBoolMaybe(options.showProgress, "show_progress");

@@ -46,10 +46,12 @@ enum Key : wchar_t {
     SuperBase = 0x4000000,
 };
 
+// NOLINTNEXTLINE(readability-identifier-length)
 inline constexpr Key operator|(const Key a, const Key b) {
     return static_cast<Key>(static_cast<wchar_t>(a) | static_cast<wchar_t>(b));
 }
 
+// NOLINTNEXTLINE(readability-identifier-length)
 inline constexpr Key& operator|=(Key& a, const Key b) {
     return a = a | b;
 }

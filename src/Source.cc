@@ -1,4 +1,3 @@
-#include <optional>
 #include <functional>
 #include <mutex>
 
@@ -7,30 +6,32 @@
 #include "Source.hh"
 
 class Source::Impl {
-    std::optional<SndfileHandle> sndfile_;
+    SndfileHandle sndfile_;
     using FillFunction = std::function<unsigned(const AudioBuffer&)>;
     FillFunction fillFunction_;
     std::mutex mutex_;
 
   public:
-    Error load(const char* filename) {
+    Error load(const char* filename) noexcept {
         sndfile_ = SndfileHandle(filename);
-        if (sndfile_->error() == SF_ERR_NO_ERROR) {
-            auto fmt = sndfile_->format() & SF_FORMAT_SUBMASK;
+        if (sndfile_.error() == SF_ERR_NO_ERROR) {
+            auto fmt = sndfile_.format() & SF_FORMAT_SUBMASK;
             switch (fmt) {
                 case SF_FORMAT_PCM_S8:
                 case SF_FORMAT_PCM_U8:
                     fillFunction_ = [this](const AudioBuffer& buffer) {
-                        return sndfile_->readRaw(
-                                   buffer.data, buffer.frameCount) /
-                               sndfile_->channels();
+                        auto channels = sndfile_.channels();
+                        if (channels != 0) {
+                            return sndfile_.readRaw(
+                                buffer.data, buffer.frameCount / channels);
+                        }
+                        return 0L;
                     };
                     break;
 
                 case SF_FORMAT_PCM_16:
                     fillFunction_ = [this](const AudioBuffer& buffer) {
-                        return sndfile_->readf(
-                            reinterpret_cast<short*>(buffer.data),
+                        return sndfile_.readf(static_cast<short*>(buffer.data),
                             buffer.frameCount);
                     };
                     break;
@@ -38,43 +39,44 @@ class Source::Impl {
                 case SF_FORMAT_PCM_24:
                 case SF_FORMAT_PCM_32:
                     fillFunction_ = [this](const AudioBuffer& buffer) {
-                        return sndfile_->readf(
-                            reinterpret_cast<int*>(buffer.data),
-                            buffer.frameCount);
+                        return sndfile_.readf(
+                            static_cast<int*>(buffer.data), buffer.frameCount);
                     };
                     break;
 
                 case SF_FORMAT_DOUBLE:
                     fillFunction_ = [this](const AudioBuffer& buffer) {
-                        return sndfile_->readf(
-                            reinterpret_cast<double*>(buffer.data),
+                        return sndfile_.readf(
+                            static_cast<double*>(buffer.data),
                             buffer.frameCount);
                     };
                     break;
 
                 default:
                     fillFunction_ = [this](const AudioBuffer& buffer) {
-                        return sndfile_->readf(
-                            reinterpret_cast<float*>(buffer.data),
+                        return sndfile_.readf(static_cast<float*>(buffer.data),
                             buffer.frameCount);
                     };
                     break;
             }
         }
-        return static_cast<Error>(sndfile_->error());
+        return static_cast<Error>(sndfile_.error());
     }
 
     unsigned fill(const AudioBuffer& buffer) noexcept {
-        std::unique_lock<std::mutex> lock(mutex_);
+        const std::unique_lock<std::mutex> lock(mutex_);
         return fillFunction_(buffer);
     }
 
     long seek(long frames) noexcept {
-        std::unique_lock<std::mutex> lock(mutex_);
-        return sndfile_->seek(frames, SF_SEEK_CUR);
+        if (!sndfile_) {
+            return 0L;
+        }
+        const std::unique_lock<std::mutex> lock(mutex_);
+        return sndfile_.seek(frames, SF_SEEK_CUR);
     }
 
-    [[nodiscard]] StreamParams streamParams() const noexcept {
+    [[nodiscard]] StreamParams streamParams() const {
         auto format = [](auto fmt) {
             switch (fmt) {
                 case SF_FORMAT_PCM_S8:
@@ -102,14 +104,19 @@ class Source::Impl {
                     return SampleFormat::None;
             }
         };
-
-        return {format(sndfile_->format() & SF_FORMAT_SUBMASK),
-            static_cast<unsigned>(sndfile_->channels()),
-            static_cast<unsigned>(sndfile_->samplerate())};
+        if (sndfile_) {
+            return {format(sndfile_.format() & SF_FORMAT_SUBMASK),
+                static_cast<unsigned>(sndfile_.channels()),
+                static_cast<unsigned>(sndfile_.samplerate())};
+        }
+        return {SampleFormat::U8, 0, 0};
     }
 
     [[nodiscard]] long frames() const noexcept {
-        return sndfile_->frames();
+        if (sndfile_) {
+            return sndfile_.frames();
+        }
+        return 0;
     }
 };
 
@@ -121,7 +128,7 @@ unsigned Source::fill(const AudioBuffer& buffer) noexcept {
     return impl_->fill(buffer);
 }
 
-StreamParams Source::streamParams() const noexcept {
+StreamParams Source::streamParams() const {
     return impl_->streamParams();
 }
 

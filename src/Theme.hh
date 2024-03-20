@@ -32,7 +32,7 @@ class Theme {
     struct Style {
         Color fg;
         Color bg;
-        Decoration decoration;
+        Decoration decoration{Decoration::None};
 
         explicit operator bool() const {
             return fg.index() != 0 || bg.index() != 0 ||
@@ -52,7 +52,7 @@ class Theme {
     ~Theme() = default;
 
     [[nodiscard]] static const Style& style(Element element);
-    [[nodiscard]] static wchar_t lineChar(LineType t);
+    [[nodiscard]] static wchar_t lineChar(LineType lineType);
     [[nodiscard]] static const std::wstring& state(unsigned index);
 
     static void load(const char* path);

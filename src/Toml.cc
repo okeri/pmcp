@@ -32,41 +32,41 @@ class Toml::Impl {
         return static_cast<bool>(node_);
     }
 
-    [[nodiscard]] bool enumArray(EnumArrayCallbackW cb) const noexcept {
+    [[nodiscard]] bool enumArray(EnumArrayCallbackW visit) const noexcept {
         if (!node_) {
             return false;
         }
 
         if (auto array = node_->as_array()) {
-            for (const auto& value : *array.get()) {
+            for (const auto& value : *array) {
                 auto str = value->as<std::string>()->get();
-                cb(utf8::convert(str));
+                visit(utf8::convert(str));
             }
             return true;
         }
         return false;
     }
 
-    [[nodiscard]] bool enumArray(EnumArrayCallback cb) const noexcept {
+    [[nodiscard]] bool enumArray(EnumArrayCallback visit) const noexcept {
         if (!node_) {
             return false;
         }
 
         if (auto array = node_->as_array()) {
-            for (const auto& value : *array.get()) {
-                cb(value->as<std::string>()->get());
+            for (const auto& value : *array) {
+                visit(value->as<std::string>()->get());
             }
             return true;
         }
         return false;
     }
 
-    void enumTable(EnumTableCallback cb) const noexcept {
+    void enumTable(EnumTableCallback visit) const noexcept {
         if (!node_) {
             return;
         }
-        for (const auto& e : *node_->as_table().get()) {
-            cb(e.first, Toml(Node(e.second)));
+        for (const auto& element : *node_->as_table()) {
+            visit(element.first, Toml(Node(element.second)));
         }
     }
 
@@ -104,8 +104,8 @@ class Toml::Impl {
         }
     }
     void save(const std::string& filename) {
-        std::ofstream f(filename);
-        f << *node_.get();
+        std::ofstream file(filename);
+        file << *node_;
     }
 };
 
@@ -119,32 +119,32 @@ Toml::Toml(Node&& node) noexcept : impl_(std::move(node)) {
 
 Toml::~Toml() = default;
 
-bool Toml::enumArray(EnumArrayCallback cb) const noexcept {
-    return impl_->enumArray(std::move(cb));
+bool Toml::enumArray(EnumArrayCallback visit) const noexcept {
+    return impl_->enumArray(visit);
 }
 
-bool Toml::enumArray(EnumArrayCallbackW cb) const noexcept {
-    return impl_->enumArray(std::move(cb));
+bool Toml::enumArray(EnumArrayCallbackW visit) const noexcept {
+    return impl_->enumArray(visit);
 }
 
 bool Toml::enumArray(
-    const std::string& key, EnumArrayCallback cb) const noexcept {
-    if (auto v = impl_->get(key)) {
-        return v->enumArray(cb);
+    const std::string& key, EnumArrayCallback visit) const noexcept {
+    if (auto values = impl_->get(key)) {
+        return values->enumArray(visit);
     }
     return false;
 }
 
 bool Toml::enumArray(
-    const std::string& key, EnumArrayCallbackW cb) const noexcept {
-    if (auto v = impl_->get(key)) {
-        return v->enumArray(cb);
+    const std::string& key, EnumArrayCallbackW visit) const noexcept {
+    if (auto values = impl_->get(key)) {
+        return values->enumArray(visit);
     }
     return false;
 }
 
-void Toml::enumTable(EnumTableCallback cb) const noexcept {
-    impl_->enumTable(std::move(cb));
+void Toml::enumTable(EnumTableCallback visit) const noexcept {
+    impl_->enumTable(visit);
 }
 
 std::optional<Toml> Toml::operator[](const std::string& key) const {
@@ -167,12 +167,12 @@ void Toml::save(const std::string& filename) {
     impl_->save(filename);
 }
 
-std::optional<bool> Toml::as_bool() const noexcept {
+std::optional<bool> Toml::asBool() const noexcept {
     return impl_->as<bool>();
 }
-std::optional<std::string> Toml::as_string() const noexcept {
+std::optional<std::string> Toml::asString() const noexcept {
     return impl_->as<std::string>();
 }
-std::optional<std::wstring> Toml::as_wstring() const noexcept {
+std::optional<std::wstring> Toml::asWstring() const noexcept {
     return impl_->as<std::wstring>();
 }

@@ -9,8 +9,8 @@
 
 template <class Impl>
 class FFTBase : public Impl {
-    double* in_;
-    std::complex<double>* out_;
+    double* input_;
+    std::complex<double>* output_;
 
   public:
     FFTBase(const FFTBase&) = delete;
@@ -18,9 +18,9 @@ class FFTBase : public Impl {
     FFTBase& operator=(const FFTBase&) = delete;
     FFTBase& operator=(FFTBase&&) = delete;
 
-    FFTBase(unsigned len, double* in, std::complex<double>* out) :
-        in_(in), out_(out) {
-        Impl::createPlan(len, in, out);
+    FFTBase(unsigned len, double* input, std::complex<double>* output) :
+        input_(input), output_(output) {
+        Impl::createPlan(len, input, output);
     }
 
     ~FFTBase() {
@@ -28,12 +28,12 @@ class FFTBase : public Impl {
     }
 
     void exec() {
-        Impl::exec(in_, out_);
+        Impl::exec(input_, output_);
     }
 
     void resize(unsigned len) {
         Impl::freePlan();
-        Impl::createPlan(len, in_, out_);
+        Impl::createPlan(len, input_, output_);
     }
 };
 
@@ -42,13 +42,16 @@ class FFTBase : public Impl {
 
 class Mkl {
   public:
-    void exec(double* in, std::complex<double>* out) {
-        DftiComputeForward(desc_, in, out);
+    void exec(double* input, std::complex<double>* output) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+        DftiComputeForward(desc_, input, output);
     }
 
-    void createPlan(unsigned len, [[maybe_unused]] double* in,
+    void createPlan(unsigned len, [[maybe_unused]] double* input,
         [[maybe_unused]] std::complex<double>* out) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
         DftiCreateDescriptor(&desc_, DFTI_DOUBLE, DFTI_REAL, 1, len);
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
         DftiSetValue(desc_, DFTI_PLACEMENT, DFTI_NOT_INPLACE);
         DftiCommitDescriptor(desc_);
     }
@@ -70,14 +73,14 @@ class Fftw {
     fftw_plan plan_;
 
   public:
-    void exec([[maybe_unused]] double* in,
-        [[maybe_unused]] std::complex<double>* out) {
+    void exec([[maybe_unused]] double* input,
+        [[maybe_unused]] std::complex<double>* output) {
         fftw_execute(plan_);
     }
 
-    void createPlan(unsigned len, double* in, std::complex<double>* out) {
+    void createPlan(unsigned len, double* input, std::complex<double>* output) {
         plan_ = fftw_plan_dft_r2c_1d(
-            len, in, reinterpret_cast<fftw_complex*>(out), FFTW_ESTIMATE);
+            len, input, reinterpret_cast<fftw_complex*>(output), FFTW_ESTIMATE);
     }
 
     void freePlan() {

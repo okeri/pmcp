@@ -12,7 +12,7 @@
 
 namespace {
 
-static constexpr auto csiPrefix = L"\x1b[";
+constexpr auto CSIPrefix = L"\x1b[";
 
 enum class CSI {
     Reset,
@@ -24,12 +24,12 @@ enum class CSI {
     DisableAltScreen
 };
 
-std::wostream& operator<<(std::wostream& os, CSI csi) noexcept {
+std::wostream& operator<<(std::wostream& ostream, CSI csi) noexcept {
     static std::vector<std::wstring> csiSequences = {
         L"0m", L"?25h", L"?25l", L"?7h", L"?7l", L"?1049h", L"?1049l"};
-    os << csiPrefix
-       << csiSequences[static_cast<std::underlying_type_t<CSI>>(csi)];
-    return os;
+    ostream << CSIPrefix
+            << csiSequences[static_cast<std::underlying_type_t<CSI>>(csi)];
+    return ostream;
 }
 
 termios* terminfo() {
@@ -50,33 +50,45 @@ const std::vector<std::wstring>& styles() {
                             return std::wstring(L"5;") + std::to_wstring(value);
                         } else if constexpr (std::is_same<ColorType,
                                                  unsigned>()) {
+                            // NOLINTBEGIN(readability-magic-numbers)
+                            auto red = [](unsigned colorVal) {
+                                return (colorVal >> 16U) & 0xFFU;
+                            };
+                            auto blue = [](unsigned colorVal) {
+                                return (colorVal >> 8U) & 0xFFU;
+                            };
+                            auto green = [](unsigned colorVal) {
+                                return (colorVal & 0xFFU);
+                            };
+                            // NOLINTEND(readability-magic-numbers)
                             return std::wstring(L"2;") +
-                                   std::to_wstring((value >> 16u) & 0xffu) +
-                                   L';' +
-                                   std::to_wstring((value >> 8u) & 0xffu) +
-                                   L';' + std::to_wstring(value & 0xffu);
+                                   std::to_wstring(red(value)) + L';' +
+                                   std::to_wstring(blue(value)) + L';' +
+                                   std::to_wstring(green(value));
                         } else {
                             return std::wstring{};
                         }
                     },
                     color);
             };
-            auto result = std::wstring{csiPrefix};
-            auto fg = style.fg.index() != 0
-                          ? colorString(style.fg)
-                          : colorString(Theme::style(Element::Default).fg);
-            if (!fg.empty()) {
-                result += L";38;" + fg;
+            auto result = std::wstring{CSIPrefix};
+            auto foreground =
+                style.fg.index() != 0
+                    ? colorString(style.fg)
+                    : colorString(Theme::style(Element::Default).fg);
+            if (!foreground.empty()) {
+                result += L";38;" + foreground;
             }
-            auto bg = style.bg.index() != 0
-                          ? colorString(style.bg)
-                          : colorString(Theme::style(Element::Default).bg);
-            if (!bg.empty()) {
-                result += L";48;" + bg;
+            auto background =
+                style.bg.index() != 0
+                    ? colorString(style.bg)
+                    : colorString(Theme::style(Element::Default).bg);
+            if (!background.empty()) {
+                result += L";48;" + background;
             }
-            for (auto i = 0u, v = 1u; i < decor.size(); ++i, v <<= 1) {
-                if (style.hasDecoration(v) ||
-                    Theme::style(Element::Default).hasDecoration(v)) {
+            for (auto i = 0U, value = 1U; i < decor.size(); ++i, value <<= 1) {
+                if (style.hasDecoration(value) ||
+                    Theme::style(Element::Default).hasDecoration(value)) {
                     result += std::wstring(L";") + decor[i];
                 }
             }
@@ -119,8 +131,8 @@ constexpr Flags operator&(const Flags a, const Flags b) {
         std::underlying_type_t<Flags>(a) & std::underlying_type_t<Flags>(b));
 }
 
-constexpr Flags operator~(const Flags f) {
-    return static_cast<Flags>(~std::underlying_type_t<Flags>(f));
+constexpr Flags operator~(const Flags flags) {
+    return static_cast<Flags>(~std::underlying_type_t<Flags>(flags));
 }
 
 constexpr Flags& operator&=(Flags& a, const Flags b) {
@@ -133,7 +145,7 @@ class Cell {
     Flags flags_{Flags::None};
 
     friend std::wostream& operator<<(
-        std::wostream& os, const Cell& cell) noexcept;
+        std::wostream& ostream, const Cell& cell) noexcept;
 
   public:
     Cell() = default;
@@ -142,8 +154,8 @@ class Cell {
         flags_ |= Flags::Hidden;
     }
 
-    [[nodiscard]] bool has(const Flags f) const {
-        return ((flags_ & f) == f);
+    [[nodiscard]] bool has(const Flags flags) const {
+        return ((flags_ & flags) == flags);
     }
 
     [[nodiscard]] explicit operator bool() const noexcept {
@@ -188,33 +200,33 @@ class Cell {
         return style_;
     }
 
-    static unsigned width(std::wstring_view s) noexcept {
-        auto ret = wcswidth(s.begin(), s.length());
+    static unsigned width(std::wstring_view str) noexcept {
+        auto ret = wcswidth(str.begin(), str.length());
         if (ret == -1) {
-            return s.length();
+            return str.length();
         }
         return ret;
     }
 };
 
-std::wostream& operator<<(std::wostream& os, const Cell& cell) noexcept {
+std::wostream& operator<<(std::wostream& ostream, const Cell& cell) noexcept {
     if (cell.has(Flags::ClearDecoration)) {
-        os << csiPrefix << L"22;23;24;25;27;28;29;54;55;59;65m";
+        ostream << CSIPrefix << L"22;23;24;25;27;28;29;54;55;59;65m";
     }
 
     if (cell.has(Flags::HasStyle)) {
-        os << styles()[cast(cell.style_)];
+        ostream << styles()[cast(cell.style_)];
     }
     if (cell.has(Flags::Inverted)) {
-        os << csiPrefix << L"7m";
+        ostream << CSIPrefix << L"7m";
     } else if (cell.has(Flags::NoInverted)) {
-        os << csiPrefix << L"27m";
+        ostream << CSIPrefix << L"27m";
     }
-    os << cell.data_[0];
+    ostream << cell.data_[0];
     if (cell.has(Flags::Multi)) {
-        os << cell.data_[1];
+        ostream << cell.data_[1];
     }
-    return os;
+    return ostream;
 }
 
 }  // namespace
@@ -237,8 +249,8 @@ class Terminal::Plane::Impl {
         }
     }
 
-    unsigned putText(std::wstring_view s, unsigned cursor) noexcept {
-        for (auto it = s.begin(); it < s.end(); ++it) {
+    unsigned putText(std::wstring_view str, unsigned cursor) noexcept {
+        for (const auto* it = str.begin(); it < str.end(); ++it) {
             cells_[cursor] = *it;
             auto width = cells_[cursor].width();
             if (width == 0) {
@@ -246,8 +258,8 @@ class Terminal::Plane::Impl {
                 inc(cursor);
                 continue;
             }
-            auto fin = cursor + width;
-            for (inc(cursor); cursor < fin; inc(cursor)) {
+            auto end = cursor + width;
+            for (inc(cursor); cursor < end; inc(cursor)) {
                 cells_[cursor].hide();
             }
         }
@@ -303,27 +315,28 @@ class Terminal::Plane::Impl {
     }
 
     void operator<<(const Cursor& cursor) noexcept {
-        cursor_ = std::clamp(cursor.y * size_.cols + cursor.x, 0u,
+        cursor_ = std::clamp(cursor.y * size_.cols + cursor.x, 0U,
             static_cast<unsigned>(cells_.size() - 1));
     }
 
-    void operator<<(const Element element) noexcept {
+    void operator<<(Element element) noexcept {
         cells_[cursor_].setStyle(element);
     }
 
-    void operator<<(wchar_t c) noexcept {
-        cells_[cursor_] = c;
+    void operator<<(wchar_t symbol) noexcept {
+        cells_[cursor_] = symbol;
         inc(cursor_);
     }
 
-    void operator<<(std::wstring_view s) noexcept {
-        cursor_ = putText(s, cursor_);
+    void operator<<(std::wstring_view str) noexcept {
+        cursor_ = putText(str, cursor_);
     }
 
     void box(std::wstring_view caption, Element captionStyle, const Bounds& pos,
         Element lineStyle) noexcept {
         auto width = size_.cols;
-        auto calcCursor = [&width](int x, int y) { return y * width + x; };
+        auto calcCursor = [&width](
+                              unsigned x, unsigned y) { return y * width + x; };
         auto cursor = calcCursor(pos.left, pos.top);
         auto maxlen = pos.cols - 2;  // TODO: unsafe
         if (caption.length() > maxlen) {
@@ -414,13 +427,13 @@ Terminal::Plane& Terminal::Plane::operator<<(const Element element) noexcept {
     return *this;
 }
 
-Terminal::Plane& Terminal::Plane::operator<<(wchar_t c) noexcept {
-    *impl_ << c;
+Terminal::Plane& Terminal::Plane::operator<<(wchar_t symbol) noexcept {
+    *impl_ << symbol;
     return *this;
 }
 
-Terminal::Plane& Terminal::Plane::operator<<(std::wstring_view s) noexcept {
-    *impl_ << s;
+Terminal::Plane& Terminal::Plane::operator<<(std::wstring_view str) noexcept {
+    *impl_ << str;
     return *this;
 }
 
@@ -444,7 +457,7 @@ Terminal& Terminal::operator<<(const Plane& plane) noexcept {
         }
     }
 #else
-    std::wcout << csiPrefix << top + 1 << 'H';
+    std::wcout << CSIPrefix << top + 1 << 'H';
     const auto& cells = plane.impl_->cells_;
     for (const auto& cell : cells) {
         if (cell) {
@@ -455,13 +468,13 @@ Terminal& Terminal::operator<<(const Plane& plane) noexcept {
     return *this;
 }
 
-[[nodiscard]] Terminal::Size Terminal::size() const noexcept {
-    auto ws = winsize();
-    if (ioctl(0, TIOCGWINSZ, &ws) == 0) {  // NOLINT
-        return {ws.ws_col, ws.ws_row};
-    } else {
-        return {0, 0};
+Terminal::Size Terminal::size() noexcept {
+    auto winSize = winsize();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+    if (ioctl(0, TIOCGWINSZ, &winSize) == 0) {
+        return {winSize.ws_col, winSize.ws_row};
     }
+    return {0, 0};
 }
 
 Terminal::Terminal() noexcept {
@@ -488,11 +501,11 @@ Terminal::~Terminal() {
 #endif
 }
 
-Terminal::Plane Terminal::createPlane(const Bounds& pos) {
+Terminal::Plane Terminal::createPlane(const Bounds& pos) noexcept {
     return Plane(pos);
 }
 
-void Terminal::render() const noexcept {
+void Terminal::render() noexcept {
     std::wcout << CSI::Reset;
     std::wcout.flush();
 }
@@ -501,12 +514,12 @@ unsigned Terminal::width(std::wstring_view str) noexcept {
     return Cell::width(str);
 }
 
+void Terminal::loadTheme(const char* path) {
+    Theme::load(path);
+    styles();
+}
+
 Terminal& term() {
     static Terminal terminal;
     return terminal;
-}
-
-void loadTheme(const char* path) {
-    Theme::load(path);
-    styles();
 }

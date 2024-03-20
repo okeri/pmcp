@@ -6,40 +6,41 @@
 
 namespace {
 
-static std::vector<std::wstring> keyNames = {L"backspace", L"left", L"right",
+const std::vector<std::wstring> keyNames = {L"backspace", L"left", L"right",
     L"up", L"down", L"home", L"end", L"pgup", L"pgdown", L"insert", L"delete",
     L"enter", L"tab", L"esc", L"f0", L"f1", L"f2", L"f3", L"f4", L"f5", L"f6",
     L"f7", L"f8", L"f9", L"f10", L"f11", L"f12", L"f13", L"f14", L"f15", L"f16",
     L"f17", L"f18", L"f19", L"f20"};
 
-constexpr auto namesStart = 0x110002;
+constexpr auto NamesStart = 0x110002;
 
 constexpr input::Key operator&(const input::Key a, const input::Key b) {
     return static_cast<input::Key>(std::underlying_type_t<input::Key>(a) &
                                    std::underlying_type_t<input::Key>(b));
 }
 
-constexpr input::Key operator~(const input::Key f) {
-    return static_cast<input::Key>(~std::underlying_type_t<input::Key>(f));
+constexpr input::Key operator~(const input::Key key) {
+    return static_cast<input::Key>(~std::underlying_type_t<input::Key>(key));
 }
 
 constexpr input::Key& operator&=(input::Key& a, const input::Key b) {
     return a = a & b;
 }
 
-input::Key key(const std::wstring_view& name) {
+input::Key keyFromName(const std::wstring_view& name) {
     auto low = std::wstring(name);
     std::transform(low.begin(), low.end(), low.begin(),
-        [](wchar_t c) { return std::tolower(c); });
+        [](wchar_t sym) { return std::tolower(sym); });
     if (low == L"alt") {
         return input::Key::AltBase;
-    } else if (low == L"ctrl") {
+    }
+    if (low == L"ctrl") {
         return input::Key::CtrlBase;
     }
     if (auto found = std::find(keyNames.begin(), keyNames.end(), low);
         found != keyNames.end()) {
         return static_cast<input::Key>(
-            namesStart + std::distance(keyNames.begin(), found));
+            NamesStart + std::distance(keyNames.begin(), found));
     }
     return static_cast<input::Key>(name[0]);
 }
@@ -59,7 +60,7 @@ void strBreak(std::wstring_view input, Pred handler, IsSep issep,
             }
         } else {
             if (head != end) {
-                *const_cast<wchar_t*>(tail) = 0;
+                *const_cast<wchar_t*>(tail) = 0;  // NOLINT
                 if (!handler(head, tail)) {
                     return;
                 }
@@ -68,7 +69,7 @@ void strBreak(std::wstring_view input, Pred handler, IsSep issep,
         }
     }
     if (head != end) {
-        *const_cast<wchar_t*>(tail) = 0;
+        *const_cast<wchar_t*>(tail) = 0;  // NOLINT
         handler(head, tail);
     }
 }
@@ -78,8 +79,8 @@ struct ActionDescription {
     std::wstring description;
 };
 
-constexpr auto count = static_cast<unsigned>(Action::Count);
-static std::array<ActionDescription, count> descriptions{{
+constexpr auto Count = static_cast<unsigned>(Action::Count);
+const std::array<ActionDescription, Count> descriptions{{
     {"quit", L"Quit program"},
     {"go", L"Play a playlist entry or file or enter to directory"},
     {"up", L"Move up"},
@@ -183,20 +184,22 @@ Keymap::Keymap(const std::string& path) :
                     ++begin;
                     mods |= input::CtrlBase;
                 }
-                auto k = key(std::wstring_view(begin, end));
-                switch (k) {
+                auto key = keyFromName(std::wstring_view(begin, end));
+                switch (key) {
                     case input::CtrlBase:
                     case input::AltBase:
-                        mods |= k;
+                        mods |= key;
                         break;
 
                     default:
-                        result = k;
+                        result = key;
                 }
 
                 return true;
             },
-            [](const wchar_t c) { return !isgraph(c) || c == L'+'; });
+            [](const wchar_t symbol) {
+                return isgraph(symbol) == 0 || symbol == L'+';
+            });
         return result | mods;
     };
 
@@ -216,8 +219,8 @@ Keymap::Keymap(const std::string& path) :
         if (!val.enumArray([&](const std::wstring& key) {
                 keymap_[parseKey(key)] = act;
             })) {
-            if (auto k = val.as<std::wstring>()) {
-                keymap_[parseKey(*k)] = act;
+            if (auto key = val.as<std::wstring>()) {
+                keymap_[parseKey(*key)] = act;
             }
         }
     });
@@ -243,11 +246,11 @@ std::wstring Keymap::name(input::Key key) {
     if (key == input::Key::Null) {
     } else if (key == L' ') {
         result += L"space";
-    } else if (key < 0x110000) {
+    } else if (key < 0x110000) {  // NOLINT(readability-magic-numbers)
         result += static_cast<wchar_t>(key);
-    } else if (key >= namesStart &&
-               key < namesStart + static_cast<int>(keyNames.size())) {
-        result += keyNames[key - namesStart];
+    } else if (key >= NamesStart &&
+               key < NamesStart + static_cast<int>(keyNames.size())) {
+        result += keyNames[key - NamesStart];
     }
     return result;
 }
