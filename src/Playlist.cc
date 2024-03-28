@@ -220,13 +220,14 @@ Playlist Playlist::load(const std::string& path) {
 void Playlist::save(const std::string& path) {
     auto filename = path.empty() ? config().playlistPath : path;
     std::ofstream output(filename);
-    output << "#EXTM3U" << std::endl;
+    output << "#EXTM3U"
+           << "\n";
     for (const auto& item : items_) {
         if (!item.isDir()) {
             // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
             output << "#EXTINF:" << *item.duration << ","
-                   << utf8::convert(item.title) << std::endl;
-            output << item.path << std::endl;
+                   << utf8::convert(item.title) << "\n";
+            output << item.path << "\n";
         }
     }
 }

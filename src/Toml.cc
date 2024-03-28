@@ -1,5 +1,4 @@
 #include <fstream>
-#include <limits>
 #include <cpptoml.h>
 
 #include "utf8.hh"
@@ -16,7 +15,7 @@ class Toml::Impl {
     explicit Impl(const std::string& filename) {
         try {
             node_ = cpptoml::parse_file(filename);
-        } catch (cpptoml::parse_exception& e) {
+        } catch (cpptoml::parse_exception& e) {  // NOLINT
         }
     }
 
@@ -91,7 +90,7 @@ class Toml::Impl {
         if (node_) {
             try {
                 return Toml(Node(node_->as_table()->get(key)));
-            } catch (std::out_of_range& e) {
+            } catch (std::out_of_range& e) {  // NOLINT
             }
         }
         return {};
