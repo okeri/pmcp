@@ -1,6 +1,4 @@
 #include <iostream>
-#include <cwchar>
-#include <cstring>
 #include <algorithm>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -8,7 +6,6 @@
 
 #include "Theme.hh"
 #include "Terminal.hh"
-#include "input.hh"
 
 namespace {
 
@@ -335,10 +332,13 @@ class Terminal::Plane::Impl {
     void box(std::wstring_view caption, Element captionStyle, const Bounds& pos,
         Element lineStyle) noexcept {
         auto width = size_.cols;
+        if (pos.cols < 4 || pos.rows < 4) {
+            return;
+        }
         auto calcCursor = [&width](
                               unsigned x, unsigned y) { return y * width + x; };
         auto cursor = calcCursor(pos.left, pos.top);
-        auto maxlen = pos.cols - 2;  // TODO: unsafe
+        auto maxlen = pos.cols - 4;
         if (caption.length() > maxlen) {
             caption = caption.substr(0, maxlen);
         }
@@ -350,6 +350,8 @@ class Terminal::Plane::Impl {
 
         if (!caption.empty()) {
             auto len = Cell::width(caption);
+            auto captionTruncated =
+                len > maxlen ? caption.substr(0, maxlen) : caption;
             auto start = (maxlen - len) / 2 + pos.left;
             auto end = calcCursor(start > 0 ? start - 1 : 0, pos.top);
             for (++cursor; cursor < end; ++cursor) {
@@ -358,7 +360,7 @@ class Terminal::Plane::Impl {
 
             cells_[cursor] = L' ';
             cells_[++cursor].setStyle(captionStyle);
-            cursor = putText(caption, cursor);
+            cursor = putText(captionTruncated, cursor);
             cells_[cursor] = L' ';
             cells_[cursor++].setStyle(lineStyle);
 
