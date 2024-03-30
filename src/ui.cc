@@ -296,14 +296,14 @@ void render(PlayerView& view, Terminal::Plane& plane) {
     }
 
     auto center = size.cols / 2;
-    render(view[0], plane, view.currentPath(), !view.playlistActive(), false, 0,
-        0, center, size.rows);
-    render(view[1], plane, L"Playlist", view.playlistActive(), true, center, 0,
-        size.cols - center, size.rows);
+    render(view[0], plane, view.currentPath(), view.playlist() == nullptr,
+        false, 0, 0, center, size.rows);
+    render(view[1], plane, L"Playlist", view.playlist() != nullptr, true,
+        center, 0, size.cols - center, size.rows);
 }
 
 void render(Help& help, Terminal::Plane& plane) {
-    constexpr auto FirstColumnWidth = 20;
+    constexpr auto FirstColumnWidth = 24;
     const auto& data = help.help();
     const auto& size = plane.size();
     plane << CSI::Clear;

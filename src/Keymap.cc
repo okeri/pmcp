@@ -60,7 +60,6 @@ void strBreak(std::wstring_view input, Pred handler, IsSep issep,
             }
         } else {
             if (head != end) {
-                *const_cast<wchar_t*>(tail) = 0;  // NOLINT
                 if (!handler(head, tail)) {
                     return;
                 }
@@ -69,7 +68,6 @@ void strBreak(std::wstring_view input, Pred handler, IsSep issep,
         }
     }
     if (head != end) {
-        *const_cast<wchar_t*>(tail) = 0;  // NOLINT
         handler(head, tail);
     }
 }
@@ -83,8 +81,8 @@ constexpr auto Count = static_cast<unsigned>(Action::Count);
 const std::array<ActionDescription, Count> descriptions{{
     {"quit", L"Quit program"},
     {"go", L"Play a playlist entry or file or enter to directory"},
-    {"up", L"Move up"},
-    {"down", L"Move down"},
+    {"up", L"Up"},
+    {"down", L"Down"},
     {"pgup", L"Page up"},
     {"pgdown", L"Page down"},
     {"home", L"Home"},
@@ -93,6 +91,8 @@ const std::array<ActionDescription, Count> descriptions{{
     {"next", L"Next song"},
     {"prev", L"Previous song"},
     {"pause", L"Toggle pause"},
+    {"moveup", L"Move song up in playlist"},
+    {"movedown", L"Move song down in playlist"},
     {"toggle", L"Switch between playlists"},
     {"toggle_progress", L"Toggle progress bar display"},
     {"toggle_shuffle", L"Toggle Shuffle option"},
@@ -133,6 +133,8 @@ Keymap::Keymap(const std::string& path) :
         {input::PgDown, Action::PgDown}, {input::Home, Action::Home},
         {input::End, Action::End}, {input::Enter, Action::Play},
         {input::Tab, Action::ToggleLists},
+        {input::Up | input::Key::AltBase, Action::MoveUp},
+        {input::Down | input::Key::AltBase, Action::MoveDown},
         {static_cast<input::Key>('s'), Action::Stop},
         {static_cast<input::Key>('n'), Action::Next},
         {static_cast<input::Key>('b'), Action::Prev},

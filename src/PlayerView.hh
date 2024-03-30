@@ -5,7 +5,6 @@
 
 #include "Playlist.hh"
 #include "Playqueue.hh"
-#include "Scrollable.hh"
 
 class PlayerView {
     static constexpr auto ListCount = 2;
@@ -36,6 +35,6 @@ class PlayerView {
     void markPlaying(const std::optional<unsigned>& id) noexcept;
     std::optional<Playqueue> enter() noexcept;
     [[nodiscard]] const wchar_t* currentPath() const noexcept;
-    [[nodiscard]] bool playlistActive() const noexcept;
+    Playlist* playlist() noexcept;
     Playlist& operator[](unsigned index) noexcept;
 };

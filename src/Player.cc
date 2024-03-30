@@ -141,8 +141,7 @@ std::vector<float> calculateBins(
 #endif
 
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
-Player::Player(Sender<Msg> progressSender, int argc,
-    char* argv[]) noexcept :
+Player::Player(Sender<Msg> progressSender, int argc, char* argv[]) noexcept :
     state_(Stopped()),
     sink_(
         [this, progressSender](const auto& buffer) {
@@ -259,7 +258,8 @@ const Player::State& Player::emit(
 
         case Command::Next:
             if (queue_) {
-                if (queue_->next(config().options.next, config().options.repeat)) {
+                if (queue_->next(
+                        config().options.next, config().options.repeat)) {
                     return start();
                 }
             }
@@ -349,4 +349,10 @@ void Player::setVolume(double volume) noexcept {
 
 void Player::setBinCount(unsigned count) noexcept {
     binCount_ = count;
+}
+
+void Player::swap(unsigned index1, unsigned index2) noexcept {
+    if (queue_) {
+        queue_->swap(index1, index2);
+    }
 }

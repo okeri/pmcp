@@ -57,7 +57,8 @@ class App {
                 term().createPlane({0, 0, 0, 0})}),
         player_(sender, argc, argv),
         help_(keymap),
-        lyrics_(std::move(sender), config().lyricsProvider, config().lyricsPath),
+        lyrics_(
+            std::move(sender), config().lyricsProvider, config().lyricsPath),
         spectre_(player_.state(),
             [this](unsigned count) { player_.setBinCount(count); }),
         status_(player_.state(), player_.streamParams()),
@@ -162,6 +163,24 @@ class App {
                 result = DrawFlags::All;
                 break;
 
+            case Action::MoveUp:
+                if (auto* playlist = playview_->playlist()) {
+                    if (auto pair = playlist->move(true)) {
+                        player_.swap(pair->first, pair->second);
+                        result = DrawFlags::Content;
+                    }
+                }
+                break;
+
+            case Action::MoveDown:
+                if (auto* playlist = playview_->playlist()) {
+                    if (auto pair = playlist->move(false)) {
+                        player_.swap(pair->first, pair->second);
+                        result = DrawFlags::Content;
+                    }
+                }
+                break;
+
             case Action::ToggleShuffle:
                 config().options.shuffle = !config().options.shuffle;
                 player_.updateShuffleQueue();
@@ -196,10 +215,11 @@ class App {
                     lyrics_->activate(false);
                 } else {
                     if (player_.currentEntry() == nullptr) {
-                        auto& playList = playview_->operator[](
-                            static_cast<int>(playview_->playlistActive()));
-                        if (auto sel = playList.selectedIndex()) {
-                            lyrics_->setSong(playList[*sel].title);
+                        if (auto* playList = playview_->playlist()) {
+                            if (auto sel = playList->selectedIndex()) {
+                                lyrics_->setSong(
+                                    playList->operator[](*sel).title);
+                            }
                         }
                     }
                     lyrics_->activate(true);
@@ -395,5 +415,5 @@ int main(int argc, char* argv[]) try {
         }
     }
     return 0;
-} catch (std::exception& error) {
+} catch (std::exception& error) {  // NOLINT
 }

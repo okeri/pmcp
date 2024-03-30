@@ -9,6 +9,12 @@
 #include "Playlist.hh"
 #include "utf8.hh"
 
+namespace {
+
+constexpr auto MaxSelected = 0xffffffff;
+
+}  // namespace
+
 namespace fs = std::filesystem;
 
 Playlist::Entry::Entry(const std::string& filePath, bool isDir) {
@@ -66,17 +72,16 @@ void Playlist::down(unsigned offset) noexcept {
         return;
     }
     auto max = items_.size() - 1;
-    auto index =
-        selected_.value_or(playing_.value_or(static_cast<unsigned>(-1)));
-    if (index != static_cast<unsigned>(-1)) {
+    auto index = selected_.value_or(playing_.value_or(MaxSelected));
+    if (index != MaxSelected) {
         index += offset;
         if (index > max) {
             index = max;
         }
-        select(index);
     } else {
-        select(0);
+        index = 0;
     }
+    select(index);
 }
 
 void Playlist::up(unsigned offset) noexcept {
@@ -230,4 +235,29 @@ void Playlist::save(const std::string& path) {
             output << item.path << "\n";
         }
     }
+}
+
+std::optional<std::pair<unsigned, unsigned>> Playlist::move(bool up) noexcept {
+    if (items_.size() < 2) {
+        return {};
+    }
+    auto oldPos = selected_.value_or(playing_.value_or(MaxSelected));
+    if (oldPos == MaxSelected || (up && oldPos == 0) ||
+        (!up && oldPos == items_.size() - 1)) {
+        return {};
+    }
+    auto newPos = oldPos + (up ? -1 : 1);
+    std::swap(items_[oldPos], items_[newPos]);
+    auto changeIf = [&oldPos, &newPos](auto& val) {
+        if (val) {
+            if (*val == oldPos) {
+                val = newPos;
+            } else if (*val == oldPos) {
+                val = oldPos;
+            }
+        }
+    };
+    changeIf(selected_);
+    changeIf(playing_);
+    return std::make_pair(oldPos, newPos);
 }

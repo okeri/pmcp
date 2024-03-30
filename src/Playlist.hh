@@ -46,6 +46,7 @@ class Playlist final : public ScrollableElements {
 
     const Entry& operator[](unsigned index) const noexcept;
     std::vector<Entry> recursiveCollect(unsigned index);
+    std::optional<std::pair<unsigned, unsigned>> move(bool up) noexcept;
 
   private:
     std::optional<unsigned> selected_;

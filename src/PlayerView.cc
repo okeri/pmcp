@@ -4,8 +4,8 @@
 
 PlayerView::PlayerView() noexcept :
     path_(utf8::convert(config().home)),
-    lists_({Playlist::scan(config().home),
-        Playlist::load(config().playlistPath)}),
+    lists_(
+        {Playlist::scan(config().home), Playlist::load(config().playlistPath)}),
     playlistActive_(lists_[1].count() != 0) {
 }
 
@@ -112,8 +112,8 @@ const wchar_t* PlayerView::currentPath() const noexcept {
     return path_.c_str();
 }
 
-bool PlayerView::playlistActive() const noexcept {
-    return playlistActive_;
+Playlist* PlayerView::playlist() noexcept {
+    return playlistActive_ ? &lists_[1] : nullptr;
 }
 
 Playlist& PlayerView::operator[](unsigned index) noexcept {

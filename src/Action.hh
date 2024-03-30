@@ -13,6 +13,8 @@ enum class Action {
     Next,
     Prev,
     Pause,
+    MoveUp,
+    MoveDown,
     ToggleLists,
     ToggleProgress,
     ToggleShuffle,

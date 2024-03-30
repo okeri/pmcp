@@ -3,8 +3,6 @@
 #include <vector>
 #include <string>
 
-#include "Msg.hh"
-
 struct Entry {
     unsigned id;
     unsigned duration;
@@ -32,6 +30,7 @@ class Playqueue {
     [[nodiscard]] Entry current() const noexcept;
     [[nodiscard]] bool next(bool next, bool repeat) noexcept;
     [[nodiscard]] bool prev(bool repeat) noexcept;
+    void swap(unsigned index1, unsigned index2) noexcept;
     void shuffle() noexcept;
     void sort() noexcept;
 

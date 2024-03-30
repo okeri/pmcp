@@ -62,3 +62,11 @@ void Playqueue::shuffle() noexcept {
 void Playqueue::sort() noexcept {
     playing_ = modify(items_, playing_, std::sort<decltype(items_)::iterator>);
 }
+
+void Playqueue::swap(unsigned index1, unsigned index2) noexcept {
+    playing_ = modify(items_, playing_,
+        [&index1, &index2, this]([[maybe_unused]] const auto& begin,
+            [[maybe_unused]] const auto& end) {
+            std::swap(items_[index1], items_[index2]);
+        });
+}

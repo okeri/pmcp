@@ -1,6 +1,7 @@
 #pragma once
 
 #include "channel.hh"
+#include "Msg.hh"
 #include "Playqueue.hh"
 #include "Source.hh"
 #include "Sink.hh"
@@ -15,7 +16,7 @@ enum class Command {
 
 class Player {
   public:
-    enum : unsigned { EndOfSong = 0xffffffff, SeekSeconds = 10 };
+    enum : unsigned { EndOfSong = 0xFFFFFFFF, SeekSeconds = 10 };
     struct Stopped {
         const wchar_t* error{nullptr};
     };
@@ -51,6 +52,7 @@ class Player {
     void ff() noexcept;
     void rew() noexcept;
     void setBinCount(unsigned count) noexcept;
+    void swap(unsigned index1, unsigned index2) noexcept;
 
   private:
     State state_;
