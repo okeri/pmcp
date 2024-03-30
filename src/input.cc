@@ -56,6 +56,14 @@ Key read() noexcept {
         {"32~", F18},
         {"33~", F19},
         {"34~", F20},
+        {"1;5A", Up | CtrlBase},
+        {"1;5B", Down | CtrlBase},
+        {"1;5C", Right | CtrlBase},
+        {"1;5D", Left | CtrlBase},
+        {"1;3A", Up | AltBase},
+        {"1;3B", Down | AltBase},
+        {"1;3C", Right | AltBase},
+        {"1;3D", Left | AltBase},
     };
 
     auto lookupCSI = [](std::string_view csi) {
