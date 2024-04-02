@@ -8,6 +8,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        setup:
+          - defs: ''
+            deps: ''
+          
+          - defs: '-Dspectralizer=mkl'
+            deps: 'libmkl-dev'
+          
+          - defs: '-Dspectralizer=fftw'
+            deps: 'libfftw3-dev'
+          
+        glyr: ['', 'libglyr-dev']
 
     steps:
       - name: Check out code
@@ -15,18 +28,13 @@ jobs:
 
       - name: Install deps
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y g++-13 meson ninja-build libcpptoml-dev libpipewire-0.3-dev libsndfile1-dev libtag1-dev libglyr-dev libmkl-dev libfftw3-dev 
+          sudo apt update -q
+          sudo apt install -y g++-13 meson ninja-build libcpptoml-dev libpipewire-0.3-dev libsndfile1-dev libtag1-dev ${{matrix.glyr}} ${{matrix.setup.deps}}
         shell: bash
 
       - name: Configure and build the app
         run: |
-          meson setup build
+          meson setup ${{matrix.setup.defs}} build
           meson compile -C build
-          meson setup -Dspectralizer=mkl build_mkl
-          meson compile -C build_mkl
-          meson setup -Dspectralizer=fftw build_fftw
-          meson compile -C build_fftw
-
         env:
           CXX: g++-13
