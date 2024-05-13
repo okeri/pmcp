@@ -60,7 +60,7 @@ Config::Config() {
             root.get<std::string>("lyrics_provider").value_or(lyricsProvider);
         tildaFixup(lyricsPath);
         root.enumArray("allow_extensions",
-            [this](const std::string& value) { whiteList.insert(value); });
+            [this](std::string_view value) { whiteList.emplace(value); });
     } else {
         if (!fs::exists(confPath)) {
             if (!fs::create_directory(confPath)) {

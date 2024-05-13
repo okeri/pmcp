@@ -216,11 +216,10 @@ Keymap::Keymap(const std::string& path) :
         return Action::ResetView;
     };
     auto toml = Toml(path);
-    toml.enumTable([&](const std::string& action, const Toml& val) {
+    toml.enumTable([&](std::string_view action, const Toml& val) {
         auto act = parseAction(action);
-        if (!val.enumArray([&](const std::wstring& key) {
-                keymap_[parseKey(key)] = act;
-            })) {
+        if (!val.enumArray(
+                [&](std::wstring_view key) { keymap_[parseKey(key)] = act; })) {
             if (auto key = val.as<std::wstring>()) {
                 keymap_[parseKey(*key)] = act;
             }

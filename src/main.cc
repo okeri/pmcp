@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "input.hh"
 
 #include "EventLoop.hh"

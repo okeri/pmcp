@@ -1,21 +1,21 @@
 #include <charconv>
 #include <optional>
 #include <array>
+#include <algorithm>
 
 #include "Toml.hh"
 #include "Theme.hh"
 
 namespace {
 
-std::optional<unsigned> parseInt(const std::string& strVal) {
-    const auto* start = strVal.c_str();
-    const auto* end = strVal.c_str() + strVal.size();
+std::optional<unsigned> parseInt(std::string_view strVal) {
+    const auto* start = strVal.begin();
     // NOLINTBEGIN(readability-magic-numbers)
     int base = 10;
-    while (isblank(*start) != 0 && start < end) {
+    while (isblank(*start) != 0 && start < strVal.end()) {
         start++;
     }
-    if (end - start > 1) {
+    if (strVal.end() - start > 1) {
         if (start[0] == '0' && (start[1] == 'x' || start[1] == 'X')) {
             base = 16;
             start += 2;
@@ -26,12 +26,12 @@ std::optional<unsigned> parseInt(const std::string& strVal) {
     }
 
     unsigned uintVal{};
-    auto err = std::from_chars(start, end, uintVal, base);
+    auto err = std::from_chars(start, strVal.end(), uintVal, base);
     if (err.ec == std::errc()) {
         return uintVal;
     }
     if (base == 10) {
-        err = std::from_chars(start, end, uintVal, 16);
+        err = std::from_chars(start, strVal.end(), uintVal, 16);
         return (
             err.ec == std::errc() ? std::make_optional(uintVal) : std::nullopt);
     }
@@ -70,13 +70,18 @@ void Theme::load(const char* path) {
         return {};
     };
 
-    std::unordered_map<std::string, Decoration> decorations = {
-        {"normal", Decoration::None}, {"default", Decoration::None},
-        {"bold", Decoration::Bold}, {"dim", Decoration::Dim},
-        {"italic", Decoration::Italic}, {"underline", Decoration::Underline},
-        {"blink", Decoration::Bold}, {"strike", Decoration::Strike}};
+    struct StringViewHash : public std::hash<std::string_view> {
+        using is_transparent = void;
+    };
 
-    auto parseDecoration = [&decorations](const std::string& strVal) {
+    std::unordered_map<std::string, Decoration, StringViewHash, std::equal_to<>>
+        decorations = {{"normal", Decoration::None},
+            {"default", Decoration::None}, {"bold", Decoration::Bold},
+            {"dim", Decoration::Dim}, {"italic", Decoration::Italic},
+            {"underline", Decoration::Underline}, {"blink", Decoration::Bold},
+            {"strike", Decoration::Strike}};
+
+    auto parseDecoration = [&decorations](std::string_view strVal) {
         if (auto found = decorations.find(strVal); found != decorations.end()) {
             return found->second;
         }
@@ -100,7 +105,7 @@ void Theme::load(const char* path) {
 
         if (auto style = entry["style"]) {
             if (!style->enumArray(
-                    [&result, &parseDecoration](const std::string& value) {
+                    [&result, &parseDecoration](std::string_view value) {
                         result.decoration |= parseDecoration(value);
                     })) {
                 if (auto styleVal = style->as<std::string>()) {
@@ -156,7 +161,7 @@ void Theme::load(const char* path) {
     }
 
     if (auto line = root["line"]) {
-        line->enumArray([&self](const std::wstring& value) {
+        line->enumArray([&self](std::wstring_view value) {
             if (!value.empty()) {
                 self.lineChars_.push_back(value[0]);
             }
@@ -168,9 +173,9 @@ void Theme::load(const char* path) {
     }
 
     if (auto states = root["states"]) {
-        states->enumArray([&self](const std::wstring& value) {
+        states->enumArray([&self](std::wstring_view value) {
             if (!value.empty()) {
-                self.states_.push_back(value);
+                self.states_.emplace_back(value);
             }
         });
     }

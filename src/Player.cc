@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "FFT.hh"
 #include "Player.hh"
 #include "Config.hh"

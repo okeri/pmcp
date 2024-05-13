@@ -32,15 +32,12 @@ if not cc.has_header('format')
   error('compiler with c++20 format support is required. gcc 13+ for ex.')
 endif
 
-if not cc.has_header('cpptoml.h')
-  error('cpptoml not installed')
-endif
-
 deps = [
   cc.find_library('stdc++fs'),
   dependency('sndfile'),
   dependency('libpipewire-0.3'),
   dependency('taglib'),
+  dependency('tomlplusplus')
 ]
 
 glyr = dependency('libglyr', required: get_option('glyr'))

@@ -18,7 +18,7 @@ Heavily inspired by [MOC](http://moc.daper.net), but much less feature-rich :)
 C++20 compiler  
 [meson](https://mesonbuild.com)  
 [ninja](https://ninja-build.org)  
-[cpptoml](https://github.com/skystrife/cpptoml)  
+[toml++](https://marzer.github.io/tomlplusplus)  
 
 ## building
 ```console

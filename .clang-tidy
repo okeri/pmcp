@@ -32,7 +32,7 @@ CheckOptions:
   - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value: true
   - key: readability-identifier-length.IgnoredParameterNames
-    value: 'x|y|a|b|id'
+    value: 'x|y|a|b|id|up'
   - key: readability-identifier-length.IgnoredVariableNames
     value: 'x|y|id'
   - key: readability-function-cognitive-complexity.Threshold
