@@ -6,7 +6,7 @@ PW music console player.
 Heavily inspired by [MOC](http://moc.daper.net), but much less feature-rich :)
 
 ## dependencies
-[pipewire](https://pipewire.org)  
+[pipewire](https://pipewire.org)(NOTE: version 1.6 minimum)
 [taglib](https://taglib.org)  
 [libsndfile](https://libsndfile.github.io/libsndfile)  
 [libglyr](https://github.com/sahib/glyr)(optional for lyrics fetching)  

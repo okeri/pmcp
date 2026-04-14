@@ -6,36 +6,88 @@ on:
       - master
 
 jobs:
+  deps:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install build deps
+        run: |
+          sudo apt update -q
+          sudo apt install -y meson ninja-build libdbus-1-dev libudev-dev libasound2-dev libglib2.0-dev
+        shell: bash
+
+      - name: Build PipeWire 1.6.0
+        run: |
+          git clone --depth 1 --branch 1.6.0 https://gitlab.freedesktop.org/pipewire/pipewire.git
+          pushd pipewire
+          meson setup \
+            --prefix=$GITHUB_WORKSPACE/local \
+            --libdir=lib \
+            -Dsession-managers=[] \
+            -Dtests=disabled \
+            -Dexamples=disabled \
+            -Ddocs=disabled \
+            -Dman=disabled \
+            -Dbluez5=disabled \
+            -Dvulkan=disabled \
+            -Dgstreamer=disabled \
+            -Dudevrulesdir=$GITHUB_WORKSPACE/local/lib/udev/rules.d \
+            build
+          meson compile -C build
+          meson install -C build
+          popd
+        shell: bash
+
+      - name: Build tomlplusplus
+        run: |
+          git clone https://github.com/marzer/tomlplusplus
+          pushd tomlplusplus
+          meson setup \
+            --prefix=$GITHUB_WORKSPACE/local \
+            --libdir=lib \
+            -Dbuild_lib=true \
+            build
+          meson compile -C build
+          meson install -C build
+          popd
+        shell: bash
+
+      - name: Upload built deps
+        uses: actions/upload-artifact@v6
+        with:
+          name: built-deps
+          path: local/
+
   build:
-    runs-on: ubuntu-latest
+    needs: deps
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         setup:
           - defs: ''
             deps: ''
-          
+
           - defs: '-Dspectralizer=mkl'
             deps: 'libmkl-dev'
-          
+
           - defs: '-Dspectralizer=fftw'
             deps: 'libfftw3-dev'
-          
+
         glyr: ['', 'libglyr-dev']
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Download built deps
+        uses: actions/download-artifact@v7
+        with:
+          name: built-deps
+          path: local/
+
       - name: Install deps
         run: |
           sudo apt update -q
-          sudo apt install -y g++-13 meson ninja-build libpipewire-0.3-dev libsndfile1-dev libtag1-dev ${{matrix.glyr}} ${{matrix.setup.deps}}
-          git clone https://github.com/marzer/tomlplusplus
-          pushd tomlplusplus
-          meson setup -Dbuild_lib=true build
-          meson compile -C build
-          sudo meson install -C build
-          popd
+          sudo apt install -y meson ninja-build libsndfile1-dev libtag1-dev ${{matrix.glyr}} ${{matrix.setup.deps}}
         shell: bash
 
       - name: Configure and build the app
@@ -43,4 +95,5 @@ jobs:
           meson setup ${{matrix.setup.defs}} build
           meson compile -C build
         env:
-          CXX: g++-13
+          CXX: g++
+          PKG_CONFIG_PATH: ${{ github.workspace }}/local/lib/pkgconfig
