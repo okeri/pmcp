@@ -6,7 +6,7 @@ PW music console player.
 Heavily inspired by [MOC](http://moc.daper.net), but much less feature-rich :)
 
 ## dependencies
-[pipewire](https://pipewire.org)(NOTE: version 1.6 minimum)
+[pipewire](https://pipewire.org)(NOTE: version 1.6 minimum)  
 [taglib](https://taglib.org)  
 [libsndfile](https://libsndfile.github.io/libsndfile)  
 [libglyr](https://github.com/sahib/glyr)(optional for lyrics fetching)  
@@ -15,7 +15,7 @@ Heavily inspired by [MOC](http://moc.daper.net), but much less feature-rich :)
 
 
 ## build dependencies
-C++20 compiler  
+C++23 compiler  
 [meson](https://mesonbuild.com)  
 [ninja](https://ninja-build.org)  
 [toml++](https://marzer.github.io/tomlplusplus)  
