@@ -251,7 +251,7 @@ std::optional<std::pair<unsigned, unsigned>> Playlist::move(bool moveUp) noexcep
         if (val) {
             if (*val == oldPos) {
                 val = newPos;
-            } else if (*val == oldPos) {
+            } else if (*val == newPos) {
                 val = oldPos;
             }
         }

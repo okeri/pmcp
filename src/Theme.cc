@@ -78,7 +78,7 @@ void Theme::load(const char* path) {
         decorations = {{"normal", Decoration::None},
             {"default", Decoration::None}, {"bold", Decoration::Bold},
             {"dim", Decoration::Dim}, {"italic", Decoration::Italic},
-            {"underline", Decoration::Underline}, {"blink", Decoration::Bold},
+            {"underline", Decoration::Underline}, {"blink", Decoration::Blink},
             {"strike", Decoration::Strike}};
 
     auto parseDecoration = [&decorations](std::string_view strVal) {
