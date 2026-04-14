@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <random>
+#include <ranges>
 
 #include "Playqueue.hh"
 
@@ -10,10 +11,10 @@ unsigned modify(
     std::vector<Entry>& items, unsigned index, Action action, Args... args) {
     auto entryId = items[index].id;
     action(items.begin(), items.end(), std::forward<Args>(args)...);
-    auto found = std::find_if(items.begin(), items.end(),
-        [&entryId](const auto& item) { return item.id == entryId; });
-    if (found != items.end()) {
-        return std::distance(items.begin(), found);
+    if (auto found = std::ranges::find_if(
+            items, [&entryId](const auto& item) { return item.id == entryId; });
+        found != items.end()) {
+        return std::ranges::distance(items.begin(), found);
     }
     return index;
 }

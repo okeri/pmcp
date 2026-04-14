@@ -47,7 +47,8 @@ enum Key : wchar_t {
 };
 
 constexpr Key operator|(const Key key1, const Key key2) {
-    return static_cast<Key>(static_cast<wchar_t>(key1) | static_cast<wchar_t>(key2));
+    return static_cast<Key>(
+        static_cast<wchar_t>(key1) | static_cast<wchar_t>(key2));
 }
 
 constexpr Key& operator|=(Key& key1, const Key key2) {

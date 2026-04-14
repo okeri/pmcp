@@ -86,8 +86,9 @@ jobs:
 
       - name: Install deps
         run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
           sudo apt update -q
-          sudo apt install -y meson ninja-build libsndfile1-dev libtag1-dev ${{matrix.glyr}} ${{matrix.setup.deps}}
+          sudo apt install -y g++-15 meson ninja-build libsndfile1-dev libtag1-dev ${{matrix.glyr}} ${{matrix.setup.deps}}
         shell: bash
 
       - name: Configure and build the app
@@ -95,5 +96,5 @@ jobs:
           meson setup ${{matrix.setup.defs}} build
           meson compile -C build
         env:
-          CXX: g++
+          CXX: g++-15
           PKG_CONFIG_PATH: ${{ github.workspace }}/local/lib/pkgconfig

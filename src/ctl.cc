@@ -1,7 +1,7 @@
 #include <unordered_map>
 #include <algorithm>
-#include <iostream>
 #include <filesystem>
+#include <print>
 #include <string>
 
 #include <sys/socket.h>
@@ -18,7 +18,7 @@ class Client {
         socket_(socket(AF_UNIX, SOCK_STREAM, 0)) {
         auto addr = sockaddr_un{};
         addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path));
+        strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
         if (socket_ < 0) {
             throw std::runtime_error("cannot create socket");
         }
@@ -63,14 +63,14 @@ int main(int argc, char* argv[]) {
         {"prev", Action::Prev}, {"next", Action::Next}, {"play", Action::Play}};
 
     auto usage = [&actionMap](const char* name) {
-        std::cout << "usage:" << name << " <";
+        std::print("usage: {} <", name);
         std::string sep{};
         for (const auto& [cmdName, cmdVal] : actionMap) {
-            std::cout << sep << cmdName;
+            std::print("{}{}", sep, cmdName);
             sep = "|";
             (void)cmdVal;
         }
-        std::cout << '>' << '\n';
+        std::println(">");
     };
 
     if (argc < 2) {
@@ -78,8 +78,8 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     auto cmd = std::string(argv[1]);
-    std::ranges::transform(cmd, cmd.begin(),
-        [](unsigned char sym) { return std::tolower(sym); });
+    std::ranges::transform(
+        cmd, cmd.begin(), [](unsigned char sym) { return std::tolower(sym); });
 
     auto found = actionMap.find(cmd);
     if (found == actionMap.end()) {
@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
         auto client = Client(sockPath());
         client.send(found->second);
     } catch (std::runtime_error& e) {
-        std::cout << e.what() << '\n';
+        std::println("{}", e.what());
     }
     return 0;
 }

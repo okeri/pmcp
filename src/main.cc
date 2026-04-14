@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstdint>
+#include <utility>
 
 #include "input.hh"
 
@@ -39,27 +40,36 @@ class App {
         constexpr auto MinContentForSpectr = 15U;
         constexpr auto MinSpectrHeight = 5U;
         constexpr auto SpectrContentFraction = 3U;
-        auto spectrSize = config().options.spectralizer && contentSize > MinContentForSpectr
-                              ? std::max(MinSpectrHeight, contentSize / SpectrContentFraction)
-                              : 0;
+        auto spectrSize =
+            config().options.spectralizer && contentSize > MinContentForSpectr
+                ? std::max(MinSpectrHeight, contentSize / SpectrContentFraction)
+                : 0;
         contentSize -= spectrSize;
 #else
         constexpr auto spectrSize = 0u;
 #endif
         pageSize_ = contentSize - 2;
-        planes_[0].resize({.left = 0, .top = 0, .cols = size.cols, .rows = contentSize});
-        planes_[1].resize({.left = 0, .top = contentSize, .cols = size.cols, .rows = spectrSize});
-        planes_[2].resize({.left = 0, .top = contentSize + spectrSize, .cols = size.cols, .rows = statusSize});
+        planes_[0].resize(
+            {.left = 0, .top = 0, .cols = size.cols, .rows = contentSize});
+        planes_[1].resize({.left = 0,
+            .top = contentSize,
+            .cols = size.cols,
+            .rows = spectrSize});
+        planes_[2].resize({.left = 0,
+            .top = contentSize + spectrSize,
+            .cols = size.cols,
+            .rows = statusSize});
     }
 
   public:
     App(Sender<Msg> sender, const Keymap& keymap, int argc,
         char* argv[]) noexcept :
         keymap_(keymap),
-        planes_(
-            {Terminal::createPlane({.left = 0, .top = 0, .cols = 0, .rows = 0}),
-                Terminal::createPlane({.left = 0, .top = 0, .cols = 0, .rows = 0}),
-                Terminal::createPlane({.left = 0, .top = 0, .cols = 0, .rows = 0})}),
+        planes_({Terminal::createPlane(
+                     {.left = 0, .top = 0, .cols = 0, .rows = 0}),
+            Terminal::createPlane({.left = 0, .top = 0, .cols = 0, .rows = 0}),
+            Terminal::createPlane(
+                {.left = 0, .top = 0, .cols = 0, .rows = 0})}),
         player_(sender, argc, argv),
         help_(keymap),
         lyrics_(
@@ -320,9 +330,11 @@ class App {
                 // NOLINTEND(readability-magic-numbers)
 
             case Action::Quit:
-            case Action::Count:
                 result = DrawFlags::None;
                 break;
+
+            case Action::Count:
+                std::unreachable();
         }
         return result;
     }
@@ -363,10 +375,8 @@ class App {
 
     void render(DrawFlags flags) noexcept {
         auto hasFlag = [&flags](DrawFlags value) {
-            auto queryValue =
-                static_cast<std::underlying_type_t<DrawFlags>>(value);
-            return (static_cast<std::underlying_type_t<DrawFlags>>(flags) &
-                       queryValue) == queryValue;
+            auto queryValue = std::to_underlying(value);
+            return (std::to_underlying(flags) & queryValue) == queryValue;
         };
         if (hasFlag(DrawFlags::Content)) {
             activeContent_->render(planes_[0]);

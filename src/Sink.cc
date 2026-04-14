@@ -82,7 +82,11 @@ class Sink::Impl : private PWInit {
         constexpr auto BufferSize = 1024;
         const spa_pod* params[1];
         uint8_t buffer[BufferSize];
-        struct spa_pod_builder builder = {.data=buffer, .size=sizeof(buffer), ._padding=0, .state={}, .callbacks={}};
+        struct spa_pod_builder builder = {.data = buffer,
+            .size = sizeof(buffer),
+            ._padding = 0,
+            .state = {},
+            .callbacks = {}};
         auto format = [](auto fmt) {
             switch (fmt) {
                 case SampleFormat::U8:
@@ -132,9 +136,10 @@ class Sink::Impl : private PWInit {
                 "Playback", PW_KEY_MEDIA_ROLE, "Music", nullptr);
 
         // NOLINTBEGIN(clang-diagnostic-missing-designated-field-initializers)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
         static const pw_stream_events streamEvents = {
-            .version = PW_VERSION_STREAM_EVENTS,
-            .process = [](void* data) {
+            .version = PW_VERSION_STREAM_EVENTS, .process = [](void* data) {
                 auto* self = static_cast<Sink::Impl*>(data);
                 auto* pwbuf = pw_stream_dequeue_buffer(self->stream_);
                 auto* buf = pwbuf->buffer;
@@ -145,8 +150,7 @@ class Sink::Impl : private PWInit {
 #else
                 auto frames = maxFrames;
 #endif
-                const AudioBuffer audioBuffer{
-                    .data = buf->datas[0].data,
+                const AudioBuffer audioBuffer{.data = buf->datas[0].data,
                     .frameCount = static_cast<unsigned>(frames)};
                 buf->datas[0].chunk->offset = 0;
                 buf->datas[0].chunk->stride =
@@ -155,6 +159,7 @@ class Sink::Impl : private PWInit {
                     self->fillBuffer_(audioBuffer) * self->stride_;
                 pw_stream_queue_buffer(self->stream_, pwbuf);
             }};
+#pragma GCC diagnostic pop
         // NOLINTEND(clang-diagnostic-missing-designated-field-initializers)
 
         stream_ = pw_stream_new_simple(pw_thread_loop_get_loop(loop_),

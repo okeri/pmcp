@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 #include <string>
 #include <variant>
@@ -40,8 +41,7 @@ class Theme {
         }
 
         [[nodiscard]] constexpr bool hasDecoration(unsigned flag) const {
-            return ((flag & static_cast<std::underlying_type_t<Decoration>>(
-                                decoration)) == flag);
+            return ((flag & std::to_underlying(decoration)) == flag);
         }
     };
 
@@ -70,8 +70,7 @@ inline constexpr Theme::Decoration operator|(
     const Theme::Decoration a, const Theme::Decoration b) {
     // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     return static_cast<Theme::Decoration>(
-        std::underlying_type_t<Theme::Decoration>(a) |
-        std::underlying_type_t<Theme::Decoration>(b));
+        std::to_underlying(a) | std::to_underlying(b));
 }
 
 inline constexpr Theme::Decoration& operator|=(

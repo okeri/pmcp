@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <utility>
 
 #include "FFT.hh"
 #include "Player.hh"
@@ -147,8 +148,8 @@ std::vector<float> calculateBins(
     }
 
     result.back() = chooseMagnitude(scale[binCount - 1],
-        static_cast<unsigned>(
-            static_cast<double>(HighFreq) * fftSize / static_cast<double>(params.rate)));
+        static_cast<unsigned>(static_cast<double>(HighFreq) * fftSize /
+                              static_cast<double>(params.rate)));
     return result;
 }
 
@@ -200,31 +201,30 @@ const Player::State& Player::start() {
     framesDone_ = 0;
     if (queue_) {
         auto entry = queue_->current();
-        auto error = decoder_.load(entry.path.c_str());
-        switch (error) {
-            case Source::Error::BadFormat:
-                state_ = Stopped{L"bad format"};
-                break;
-
-            case Source::Error::Open:
-                state_ = Stopped{L"cannot open file"};
-                break;
-
-            case Source::Error::Malformed:
-                state_ = Stopped{L"malformed"};
-                break;
-
-            case Source::Error::UnsupportedEncoding:
-                state_ = Stopped{L"unsupported encoding"};
-                break;
-
-            case Source::Error::Ok:
-                state_ = Playing{entry};
-                frames_ = decoder_.frames();
-                params_ = decoder_.streamParams();
-                seekFrames_ = params_.rate * SeekSeconds;
-                sink_.start(params_);
-                break;
+        auto result = decoder_.load(entry.path.c_str());
+        if (result) {
+            params_ = std::move(*result);
+            state_ = Playing{entry};
+            frames_ = decoder_.frames();
+            seekFrames_ = params_.rate * SeekSeconds;
+            sink_.start(params_);
+        } else {
+            auto errorMsg = [](Source::Error err) -> const wchar_t* {
+                switch (err) {
+                    case Source::Error::BadFormat:
+                        return L"bad format";
+                    case Source::Error::Open:
+                        return L"cannot open file";
+                    case Source::Error::Malformed:
+                        return L"malformed";
+                    case Source::Error::UnsupportedEncoding:
+                        return L"unsupported encoding";
+                    case Source::Error::Ok:
+                        std::unreachable();
+                }
+                std::unreachable();
+            };
+            state_ = Stopped{errorMsg(result.error())};
         }
     } else {
         state_ = Stopped();

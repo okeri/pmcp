@@ -1,6 +1,8 @@
+#include <format>
 #include <iostream>
 #include <algorithm>
 #include <cstdint>
+#include <utility>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <termios.h>
@@ -25,8 +27,7 @@ enum class CSI : std::uint8_t {
 std::wostream& operator<<(std::wostream& ostream, CSI csi) noexcept {
     static std::vector<std::wstring> csiSequences = {
         L"0m", L"?25h", L"?25l", L"?7h", L"?7l", L"?1049h", L"?1049l"};
-    ostream << CSIPrefix
-            << csiSequences[static_cast<std::underlying_type_t<CSI>>(csi)];
+    ostream << CSIPrefix << csiSequences[std::to_underlying(csi)];
     return ostream;
 }
 
@@ -45,7 +46,7 @@ const std::vector<std::wstring>& styles() {
                         using ColorType = std::decay_t<decltype(value)>;
                         if constexpr (std::is_same<ColorType,
                                           unsigned char>()) {
-                            return std::wstring(L"5;") + std::to_wstring(value);
+                            return std::format(L"5;{}", value);
                         } else if constexpr (std::is_same<ColorType,
                                                  unsigned>()) {
                             constexpr auto RedShift = 16U;
@@ -60,10 +61,8 @@ const std::vector<std::wstring>& styles() {
                             auto green = [](unsigned colorVal) {
                                 return (colorVal & ColorMask);
                             };
-                            return std::wstring(L"2;") +
-                                   std::to_wstring(red(value)) + L';' +
-                                   std::to_wstring(blue(value)) + L';' +
-                                   std::to_wstring(green(value));
+                            return std::format(L"2;{};{};{}", red(value),
+                                blue(value), green(value));
                         } else {
                             return std::wstring{};
                         }
@@ -118,7 +117,7 @@ enum class Flags : std::uint8_t {
 
 constexpr Flags operator|(const Flags lhs, const Flags rhs) {
     return static_cast<Flags>(
-        std::underlying_type_t<Flags>(lhs) | std::underlying_type_t<Flags>(rhs));
+        std::to_underlying(lhs) | std::to_underlying(rhs));
 }
 
 constexpr Flags& operator|=(Flags& lhs, const Flags rhs) {
@@ -127,12 +126,12 @@ constexpr Flags& operator|=(Flags& lhs, const Flags rhs) {
 
 constexpr Flags operator&(const Flags lhs, const Flags rhs) {
     return static_cast<Flags>(
-        std::underlying_type_t<Flags>(lhs) & std::underlying_type_t<Flags>(rhs));
+        std::to_underlying(lhs) & std::to_underlying(rhs));
 }
 
 constexpr Flags operator~(const Flags flags) {
     // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
-    return static_cast<Flags>(~std::underlying_type_t<Flags>(flags));
+    return static_cast<Flags>(~std::to_underlying(flags));
 }
 
 constexpr Flags& operator&=(Flags& lhs, const Flags rhs) {
@@ -338,8 +337,9 @@ class Terminal::Plane::Impl {
         if (pos.cols < 4 || pos.rows < 4) {
             return;
         }
-        auto calcCursor = [&width](
-                              unsigned col, unsigned row) { return (row * width) + col; };
+        auto calcCursor = [&width](unsigned col, unsigned row) {
+            return (row * width) + col;
+        };
         auto cursor = calcCursor(pos.left, pos.top);
         auto maxlen = pos.cols - 4;
         if (caption.length() > maxlen) {
@@ -373,7 +373,7 @@ class Terminal::Plane::Impl {
             }
         } else {
             for (++cursor; cursor < calcCursor(pos.cols - 1, pos.top);
-                 ++cursor) {
+                ++cursor) {
                 cells_[cursor] = Theme::lineChar(Theme::LineType::Horisontal);
             }
         }
@@ -449,7 +449,7 @@ Terminal& Terminal::operator<<(const Plane& plane) noexcept {
     auto left = plane.impl_->left_;
     const auto& size = plane.impl_->size_;
     for (auto line = 0u, cellIndex = 0u, cellEnd = size.cols; line < size.rows;
-         ++line, cellEnd += size.cols) {
+        ++line, cellEnd += size.cols) {
         if (left > 0) {
             std::wcout << csiPrefix << top + line + 1 << ';' << left + 1 << 'H';
         } else {

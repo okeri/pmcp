@@ -1,5 +1,6 @@
 #pragma once
 
+#include <expected>
 #include <vector>
 
 #include "PImpl.hh"
@@ -8,7 +9,7 @@
 
 class Source {
     class Impl;
-    PImpl<Impl, 80, 8> impl_;  // NOLINT(readability-magic-numbers)
+    PImpl<Impl, 88, 8> impl_;  // NOLINT(readability-magic-numbers)
 
   public:
     enum class Error { Ok, BadFormat, Open, Malformed, UnsupportedEncoding };
@@ -23,7 +24,7 @@ class Source {
 
     unsigned fill(const AudioBuffer& buffer) noexcept;
     [[nodiscard]] long frames() const noexcept;
-    Error load(const char* filename) noexcept;
-    [[nodiscard]] StreamParams streamParams() const;
+    [[nodiscard]] std::expected<StreamParams, Error> load(
+        const char* filename) noexcept;
     long seek(long frames) noexcept;
 };

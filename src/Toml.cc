@@ -108,8 +108,8 @@ bool Toml::enumArray(std::string_view key,
 void Toml::enumTable(const EnumTableCallback& visit) const noexcept {
     if (node_) {
         if (auto* table = node_->as_table()) {
-            for (const auto& element : *table) {
-                visit(element.first.str(), Toml(&element.second));
+            for (const auto& [key, node] : *table) {
+                visit(key.str(), Toml(&node));
             }
         }
     }

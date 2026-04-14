@@ -99,7 +99,8 @@ std::optional<Playqueue> PlayerView::enter() noexcept {
     return {};
 }
 
-void PlayerView::markPlaying(const std::optional<unsigned>& playIndex) noexcept {
+void PlayerView::markPlaying(
+    const std::optional<unsigned>& playIndex) noexcept {
     lists_[0].setPlaying(std::nullopt);
     lists_[1].setPlaying(std::nullopt);
     if (playlistQueued_ > -1) {

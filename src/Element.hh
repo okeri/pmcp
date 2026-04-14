@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 
 enum class Element {
     Default,
@@ -31,7 +32,7 @@ enum class Element {
 };
 
 inline constexpr auto cast(Element element) {
-    return static_cast<std::underlying_type_t<Element>>(element);
+    return std::to_underlying(element);
 }
 
 inline constexpr auto cast(std::underlying_type_t<Element> element) {

@@ -52,7 +52,8 @@ class Fetcher {
         }
         glyr_opt_type(static_cast<GlyrQuery*>(query), GLYR_GET_LYRICS);
 
-        auto* cache = glyr_get(static_cast<GlyrQuery*>(query), nullptr, nullptr);
+        auto* cache =
+            glyr_get(static_cast<GlyrQuery*>(query), nullptr, nullptr);
         if (cache != nullptr && cache->size > 0) {
             for (auto i = 0ULL; i < cache->size; ++i) {
                 if (cache->data[i] == '\r') {
@@ -108,7 +109,6 @@ std::vector<std::wstring> simpleN(std::wstring_view data) {
 }  // namespace render
 
 namespace local {
-
 
 namespace fs = std::filesystem;
 

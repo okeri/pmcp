@@ -236,7 +236,8 @@ void Playlist::save(const std::string& path) {
     }
 }
 
-std::optional<std::pair<unsigned, unsigned>> Playlist::move(bool moveUp) noexcept {
+std::optional<std::pair<unsigned, unsigned>> Playlist::move(
+    bool moveUp) noexcept {
     if (items_.size() < 2) {
         return {};
     }

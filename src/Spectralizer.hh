@@ -1,7 +1,8 @@
+#include <functional>
 #include "Player.hh"
 
 class Spectralizer {
-    using SetBinCountFn = std::function<void(unsigned)>;
+    using SetBinCountFn = std::move_only_function<void(unsigned)>;
     static constexpr auto DefaultBinCount = 8U;
 
     const Player::State& state_;

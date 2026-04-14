@@ -30,8 +30,8 @@ constexpr input::Key& operator&=(input::Key& lhs, const input::Key rhs) {
 
 input::Key keyFromName(const std::wstring_view& name) {
     auto low = std::wstring(name);
-    std::ranges::transform(low, low.begin(),
-        [](wchar_t sym) { return std::tolower(sym); });
+    std::ranges::transform(
+        low, low.begin(), [](wchar_t sym) { return std::tolower(sym); });
     if (low == L"alt") {
         return input::Key::AltBase;
     }
@@ -81,7 +81,8 @@ struct ActionDescription {
 constexpr auto Count = static_cast<unsigned>(Action::Count);
 const std::array<ActionDescription, Count> descriptions{{
     {.name = "quit", .description = L"Quit program"},
-    {.name = "go", .description = L"Play a playlist entry or file or enter to directory"},
+    {.name = "go",
+        .description = L"Play a playlist entry or file or enter to directory"},
     {.name = "up", .description = L"Up"},
     {.name = "down", .description = L"Down"},
     {.name = "pgup", .description = L"Page up"},
@@ -102,7 +103,8 @@ const std::array<ActionDescription, Count> descriptions{{
     {.name = "lyrics", .description = L"Show/hide lyrics display"},
     {.name = "help", .description = L"Show/hide this help"},
     {.name = "toggle_visualization", .description = L"Show/hide visualization"},
-    {.name = "add_to_playlist", .description = L"Add file/directory to playlist"},
+    {.name = "add_to_playlist",
+        .description = L"Add file/directory to playlist"},
     {.name = "delete", .description = L"Remove selected item from playlist"},
     {.name = "clear", .description = L"Clear playlist"},
     {.name = "ff", .description = L"Forward"},
@@ -127,19 +129,16 @@ const std::array<ActionDescription, Count> descriptions{{
 }  // namespace
 
 Keymap::Keymap(const std::string& path) :
-    keymap_({{input::key('q'), Action::Quit},
-        {input::key('Q'), Action::Quit}, {input::Up, Action::Up},
-        {input::Down, Action::Down}, {input::Left, Action::Rew},
-        {input::Right, Action::FF}, {input::PgUp, Action::PgUp},
-        {input::PgDown, Action::PgDown}, {input::Home, Action::Home},
-        {input::End, Action::End}, {input::Enter, Action::Play},
-        {input::Tab, Action::ToggleLists},
+    keymap_({{input::key('q'), Action::Quit}, {input::key('Q'), Action::Quit},
+        {input::Up, Action::Up}, {input::Down, Action::Down},
+        {input::Left, Action::Rew}, {input::Right, Action::FF},
+        {input::PgUp, Action::PgUp}, {input::PgDown, Action::PgDown},
+        {input::Home, Action::Home}, {input::End, Action::End},
+        {input::Enter, Action::Play}, {input::Tab, Action::ToggleLists},
         {input::Up | input::Key::AltBase, Action::MoveUp},
         {input::Down | input::Key::AltBase, Action::MoveDown},
-        {input::key('s'), Action::Stop},
-        {input::key('n'), Action::Next},
-        {input::key('b'), Action::Prev},
-        {input::key(' '), Action::Pause},
+        {input::key('s'), Action::Stop}, {input::key('n'), Action::Next},
+        {input::key('b'), Action::Prev}, {input::key(' '), Action::Pause},
         {input::key('p'), Action::Pause},
         {input::key('A'), Action::AddToPlaylist},
         {input::key('a'), Action::AddToPlaylist},
@@ -154,13 +153,10 @@ Keymap::Keymap(const std::string& path) :
 #ifdef ENABLE_SPECTRALIZER
         {input::key('V'), Action::ToggleSpectralizer},
 #endif
-        {input::key('d'), Action::Delete},
-        {input::key('C'), Action::Clear},
+        {input::key('d'), Action::Delete}, {input::key('C'), Action::Clear},
         {input::key('x') | input::Key::CtrlBase, Action::ResetView},
-        {input::Esc, Action::ResetView},
-        {input::key('>'), Action::VolUp1},
-        {input::key('<'), Action::VolDn1},
-        {input::key('.'), Action::VolUp5},
+        {input::Esc, Action::ResetView}, {input::key('>'), Action::VolUp1},
+        {input::key('<'), Action::VolDn1}, {input::key('.'), Action::VolUp5},
         {input::key(','), Action::VolDn5},
         {input::key('1') | input::Key::AltBase, Action::VolSet10},
         {input::key('2') | input::Key::AltBase, Action::VolSet20},
@@ -206,9 +202,8 @@ Keymap::Keymap(const std::string& path) :
 
     auto parseAction = [](const auto& strAction) {
         if (auto found = std::ranges::find_if(descriptions,
-                [&strAction](const auto& entry) {
-                    return entry.name == strAction;
-                });
+                [&strAction](
+                    const auto& entry) { return entry.name == strAction; });
             found != descriptions.end()) {
             return static_cast<Action>(
                 std::distance(descriptions.begin(), found));

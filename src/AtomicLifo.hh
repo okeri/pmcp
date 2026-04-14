@@ -31,7 +31,7 @@ class AtomicLifo {
             delete head;  // NOLINT(cppcoreguidelines-owning-memory)
             return data;
         }
-       return {};
+        return {};
     }
 
     void waitNonEmpty() noexcept {

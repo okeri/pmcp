@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <utility>
 
 #include "PImpl.hh"
 #include "StreamParams.hh"
@@ -8,10 +9,11 @@
 
 class Sink {
     class Impl;
-    PImpl<Impl, 56, 8> impl_;  // NOLINT(readability-magic-numbers)
+    PImpl<Impl, 64, 8> impl_;  // NOLINT(readability-magic-numbers)
 
   public:
-    using BufferFillRoutine = std::function<unsigned(const AudioBuffer&)>;
+    using BufferFillRoutine =
+        std::move_only_function<unsigned(const AudioBuffer&)>;
 
     Sink(Sink::BufferFillRoutine fillBuffer, int argc, char* argv[]) noexcept;
     Sink(const Sink&) = delete;

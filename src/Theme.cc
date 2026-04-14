@@ -2,6 +2,7 @@
 #include <optional>
 #include <array>
 #include <algorithm>
+#include <utility>
 
 #include "Toml.hh"
 #include "Theme.hh"
@@ -56,7 +57,7 @@ void Theme::load(const char* path) {
         if (auto* clrIt = std::ranges::find(stdColors, strVal);
             clrIt != stdColors.end()) {
             return static_cast<unsigned char>(
-                std::distance(stdColors.begin(), clrIt));
+                std::ranges::distance(stdColors.begin(), clrIt));
         }
 
         if (auto uintValMaybe = parseInt(strVal)) {
@@ -138,25 +139,18 @@ void Theme::load(const char* path) {
         constexpr auto AnsiBlue = static_cast<unsigned char>(4);
         constexpr auto AnsiCyan = static_cast<unsigned char>(6);
         self.styles_ = {{{}, {}, Decoration::None}, {{}, {}, Decoration::Dim},
-            {AnsiBlue, {}, Decoration::None},
-            {{}, {}, Decoration::Dim}, {{}, {}, Decoration::None},
-            {{}, AnsiBlue, Decoration::Bold},
+            {AnsiBlue, {}, Decoration::None}, {{}, {}, Decoration::Dim},
+            {{}, {}, Decoration::None}, {{}, AnsiBlue, Decoration::Bold},
             {AnsiYellow, {}, Decoration::Bold | Decoration::Underline},
-            {{}, {}, Decoration::None},
-            {AnsiCyan, {}, Decoration::Dim},
+            {{}, {}, Decoration::None}, {AnsiCyan, {}, Decoration::Dim},
             {AnsiCyan, AnsiBlue, Decoration::None},
             {AnsiCyan, {}, Decoration::Dim},
-            {AnsiCyan, AnsiBlue, Decoration::None},
-            {{}, {}, Decoration::Dim},
-            {AnsiYellow, {}, Decoration::Dim},
-            {{}, {}, Decoration::Dim}, {{}, {}, Decoration::Bold},
-            {AnsiBlue, {}, Decoration::Bold},
-            {AnsiCyan, {}, Decoration::Bold},
-            {AnsiYellow, {}, Decoration::Dim},
-            {AnsiYellow, {}, Decoration::Dim},
-            {{}, {}, Decoration::Dim},
-            {{}, AnsiBlue, Decoration::Bold},
-            {AnsiRed, {}, Decoration::None}};
+            {AnsiCyan, AnsiBlue, Decoration::None}, {{}, {}, Decoration::Dim},
+            {AnsiYellow, {}, Decoration::Dim}, {{}, {}, Decoration::Dim},
+            {{}, {}, Decoration::Bold}, {AnsiBlue, {}, Decoration::Bold},
+            {AnsiCyan, {}, Decoration::Bold}, {AnsiYellow, {}, Decoration::Dim},
+            {AnsiYellow, {}, Decoration::Dim}, {{}, {}, Decoration::Dim},
+            {{}, AnsiBlue, Decoration::Bold}, {AnsiRed, {}, Decoration::None}};
     }
 
     if (auto line = root["line"]) {
@@ -207,9 +201,9 @@ void Theme::load(const char* path) {
     // remove dim for progress, because we dont know how to proper handle it
 
     auto& progress = self.styles_[cast(Element::ProgressBar)];
-    progress.decoration = static_cast<Decoration>(
-        std::underlying_type_t<Decoration>(progress.decoration) &
-        ~std::underlying_type_t<Decoration>(Decoration::Dim));
+    progress.decoration =
+        static_cast<Decoration>(std::to_underlying(progress.decoration) &
+                                ~std::to_underlying(Decoration::Dim));
 }
 
 const std::wstring& Theme::state(unsigned index) {
@@ -221,8 +215,7 @@ const Theme::Style& Theme::style(Element element) {
 }
 
 wchar_t Theme::lineChar(LineType lineType) {
-    return instance()
-        .lineChars_[static_cast<std::underlying_type_t<LineType>>(lineType)];
+    return instance().lineChars_[std::to_underlying(lineType)];
 }
 
 Theme& Theme::instance() {

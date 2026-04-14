@@ -1,5 +1,6 @@
 #include <format>
 #include <cstdint>
+#include <utility>
 
 #include "ui.hh"
 #include "Theme.hh"
@@ -23,15 +24,13 @@ enum class PlaylistItemState : std::uint8_t {
 constexpr PlaylistItemState operator|(
     const PlaylistItemState lhs, const PlaylistItemState rhs) {
     return static_cast<PlaylistItemState>(
-        std::underlying_type_t<PlaylistItemState>(lhs) |
-        std::underlying_type_t<PlaylistItemState>(rhs));
+        std::to_underlying(lhs) | std::to_underlying(rhs));
 }
 
 constexpr PlaylistItemState operator&(
     const PlaylistItemState lhs, const PlaylistItemState rhs) {
     return static_cast<PlaylistItemState>(
-        std::underlying_type_t<PlaylistItemState>(lhs) &
-        std::underlying_type_t<PlaylistItemState>(rhs));
+        std::to_underlying(lhs) & std::to_underlying(rhs));
 }
 
 constexpr PlaylistItemState& operator|=(
@@ -117,7 +116,7 @@ void render(Playlist& playlist, Terminal::Plane& plane, const wchar_t* caption,
         top + 1, bottom - 1, playlist.count(), playlist.topElement());
     auto numLen = numbers ? numWidth(win.end) : 0U;
     for (auto itemIndex = win.start, yCursor = top + 1; itemIndex < win.end;
-         ++itemIndex, ++yCursor) {
+        ++itemIndex, ++yCursor) {
         plane << Cursor(left + 1, yCursor);
 
         if (numbers) {
@@ -248,8 +247,7 @@ void render(Status& status, Terminal::Plane& plane) {
         }
         plane << Cursor(start, 0) << Element::VolumeCaption << L"volume: "
               << Element::VolumeValue
-              << std::format(
-                     L"{: >3}%", static_cast<unsigned>(vol * Percent));
+              << std::format(L"{: >3}%", static_cast<unsigned>(vol * Percent));
     };
     const auto* stopped = std::get_if<Player::Stopped>(&state);
     if (stopped == nullptr || stopped->error == nullptr) {
@@ -316,7 +314,7 @@ void render(Help& help, Terminal::Plane& plane) {
     plane << CSI::Clear;
     auto win = help.scroll(1, size.rows - 1, data.size());
     for (auto itemIndex = win.start, yCursor = 1U; itemIndex < win.end;
-         ++itemIndex, ++yCursor) {
+        ++itemIndex, ++yCursor) {
         plane << Cursor(1, yCursor) << data[itemIndex].first
               << Cursor(FirstColumnWidth, yCursor)
               << std::wstring_view(data[itemIndex].second)
@@ -333,12 +331,14 @@ void render(Lyrics& lyrics, Terminal::Plane& plane) {
     plane << CSI::Clear;
     auto win = lyrics.scroll(1, size.rows - 1, data.size());
     auto maxWidth = size.cols - 2;
-    auto yCursor =
-        size.rows - 2 > data.size() ? ((size.rows - 2 - data.size()) / 2) + 1 : 1;
+    auto yCursor = size.rows - 2 > data.size()
+                       ? ((size.rows - 2 - data.size()) / 2) + 1
+                       : 1;
     for (auto itemIndex = win.start; itemIndex < win.end;
-         ++itemIndex, ++yCursor) {
+        ++itemIndex, ++yCursor) {
         auto textLine = data[itemIndex].substr(0, maxWidth);
-        plane << Cursor(1 + ((maxWidth - Terminal::width(textLine)) / 2), yCursor)
+        plane << Cursor(
+                     1 + ((maxWidth - Terminal::width(textLine)) / 2), yCursor)
               << textLine;
     }
     plane.box(lyrics.title(), Element::Title,

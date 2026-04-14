@@ -1,3 +1,4 @@
+#include <expected>
 #include <functional>
 #include <mutex>
 
@@ -7,12 +8,12 @@
 
 class Source::Impl {
     SndfileHandle sndfile_;
-    using FillFunction = std::function<unsigned(const AudioBuffer&)>;
+    using FillFunction = std::move_only_function<unsigned(const AudioBuffer&)>;
     FillFunction fillFunction_;
     std::mutex mutex_;
 
   public:
-    Error load(const char* filename) noexcept {
+    std::expected<StreamParams, Error> load(const char* filename) noexcept {
         sndfile_ = SndfileHandle(filename);
         if (sndfile_.error() == SF_ERR_NO_ERROR) {
             auto fmt = sndfile_.format() & SF_FORMAT_SUBMASK;
@@ -46,8 +47,7 @@ class Source::Impl {
 
                 case SF_FORMAT_DOUBLE:
                     fillFunction_ = [this](const AudioBuffer& buffer) {
-                        return sndfile_.readf(
-                            static_cast<double*>(buffer.data),
+                        return sndfile_.readf(static_cast<double*>(buffer.data),
                             buffer.frameCount);
                     };
                     break;
@@ -59,8 +59,9 @@ class Source::Impl {
                     };
                     break;
             }
+            return streamParams();
         }
-        return static_cast<Error>(sndfile_.error());
+        return std::unexpected(static_cast<Error>(sndfile_.error()));
     }
 
     unsigned fill(const AudioBuffer& buffer) noexcept {
@@ -120,16 +121,13 @@ class Source::Impl {
     }
 };
 
-Source::Error Source::load(const char* filename) noexcept {
+std::expected<StreamParams, Source::Error> Source::load(
+    const char* filename) noexcept {
     return impl_->load(filename);
 }
 
 unsigned Source::fill(const AudioBuffer& buffer) noexcept {
     return impl_->fill(buffer);
-}
-
-StreamParams Source::streamParams() const {
-    return impl_->streamParams();
 }
 
 long Source::frames() const noexcept {

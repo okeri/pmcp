@@ -26,7 +26,7 @@ class Toml {
     ~Toml();
 
     template <class Value>
-    using EnumArrayCallback = std::function<void(Value)>;
+    using EnumArrayCallback = std::move_only_function<void(Value) const>;
     bool enumArray(
         const EnumArrayCallback<std::string_view>& visit) const noexcept;
     bool enumArray(
@@ -37,7 +37,7 @@ class Toml {
         const EnumArrayCallback<std::wstring_view>& visit) const noexcept;
 
     using EnumTableCallback =
-        std::function<void(std::string_view value, const Toml& toml)>;
+        std::move_only_function<void(std::string_view, const Toml&) const>;
     void enumTable(const EnumTableCallback& visit) const noexcept;
 
     [[nodiscard]] std::optional<Toml> operator[](std::string_view key) const;
@@ -50,11 +50,8 @@ class Toml {
 
     template <class Value>
     [[nodiscard]] std::optional<Value> get(std::string_view key) const {
-        auto val = operator[](key);
-        if (val) {
-            return val->as<Value>();
-        }
-        return {};
+        return operator[](key).and_then(
+            [](const Toml& t) { return t.as<Value>(); });
     }
 
     template <class Value>

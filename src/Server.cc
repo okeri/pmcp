@@ -11,7 +11,7 @@ Server::Server(const char* socketPath) :
     socket_(::socket(AF_UNIX, SOCK_STREAM, 0)), sockPath_(socketPath) {
     auto addr = sockaddr_un();
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socketPath, sizeof(addr.sun_path));
+    strncpy(addr.sun_path, socketPath, sizeof(addr.sun_path) - 1);
     unlink(socketPath);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,clang-analyzer-unix.StdCLibraryFunctions)
     if (bind(socket_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
