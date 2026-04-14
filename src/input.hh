@@ -46,14 +46,17 @@ enum Key : wchar_t {
     SuperBase = 0x4000000,
 };
 
-// NOLINTNEXTLINE(readability-identifier-length)
-inline constexpr Key operator|(const Key a, const Key b) {
-    return static_cast<Key>(static_cast<wchar_t>(a) | static_cast<wchar_t>(b));
+constexpr Key operator|(const Key key1, const Key key2) {
+    return static_cast<Key>(static_cast<wchar_t>(key1) | static_cast<wchar_t>(key2));
 }
 
-// NOLINTNEXTLINE(readability-identifier-length)
-inline constexpr Key& operator|=(Key& a, const Key b) {
-    return a = a | b;
+constexpr Key& operator|=(Key& key1, const Key key2) {
+    return key1 = key1 | key2;
+}
+
+// NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
+constexpr Key key(wchar_t value) noexcept {
+    return static_cast<Key>(value);
 }
 
 Key read() noexcept;

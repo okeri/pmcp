@@ -26,7 +26,7 @@ class Query {
         glyr_query_destroy(&query_);
     }
 
-    operator GlyrQuery*() noexcept {  // NOLINT(hicpp-explicit-conversions)
+    explicit operator GlyrQuery*() noexcept {
         return &query_;
     }
 };
@@ -45,14 +45,14 @@ class Fetcher {
     static std::optional<std::string> fetchLyrics(
         const char* provider, const char* artist, const char* title) {
         Query query;
-        glyr_opt_title(query, title);
-        glyr_opt_artist(query, artist);
+        glyr_opt_title(static_cast<GlyrQuery*>(query), title);
+        glyr_opt_artist(static_cast<GlyrQuery*>(query), artist);
         if (provider != nullptr) {
-            glyr_opt_from(query, provider);
+            glyr_opt_from(static_cast<GlyrQuery*>(query), provider);
         }
-        glyr_opt_type(query, GLYR_GET_LYRICS);
+        glyr_opt_type(static_cast<GlyrQuery*>(query), GLYR_GET_LYRICS);
 
-        auto* cache = glyr_get(query, nullptr, nullptr);
+        auto* cache = glyr_get(static_cast<GlyrQuery*>(query), nullptr, nullptr);
         if (cache != nullptr && cache->size > 0) {
             for (auto i = 0ULL; i < cache->size; ++i) {
                 if (cache->data[i] == '\r') {
@@ -73,10 +73,12 @@ class Fetcher {
 
 #endif  // ENABLE_GLYR
 
+namespace {
+
 namespace render {
 
 template <class CharT, class Separator, class Handler>
-void split(std::basic_string_view<CharT> string, Separator separator,
+void split(std::basic_string_view<CharT> string, const Separator& separator,
     Handler handler) {
     size_t start = 0ULL;
     size_t end = std::basic_string_view<CharT>::npos;
@@ -107,6 +109,7 @@ std::vector<std::wstring> simpleN(std::wstring_view data) {
 
 namespace local {
 
+
 namespace fs = std::filesystem;
 
 std::vector<std::wstring> load(
@@ -126,12 +129,14 @@ void save(const std::wstring& lyricsPath, const std::wstring& song,
     auto path = fs::path(lyricsPath) / (song + L".txt");
     if (auto output = std::ofstream(path.string())) {
         for (const auto& line : data) {
-            output << utf8::convert(line) << std::endl;
+            output << utf8::convert(line) << '\n';
         }
     }
 }
 
 }  // namespace local
+
+}  // namespace
 
 Lyrics::Lyrics(Sender<Msg> progressSender, std::string provider,
     const std::string& path) noexcept :
@@ -194,7 +199,7 @@ void Lyrics::loadLyrics() {
         auto lyrics = glyr::Fetcher::fetchLyrics(
             provider_.empty() ? nullptr : provider_.c_str(),
             components[0].c_str(), components[1].c_str());
-        const std::lock_guard lock(mutex_);
+        const std::scoped_lock lock(mutex_);
         if (lyrics) {
             text_ = render::simpleN(utf8::convert(lyrics.value()));
             local::save(path_, title_, text_);

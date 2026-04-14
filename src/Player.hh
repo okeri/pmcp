@@ -62,7 +62,8 @@ class Player {
     std::optional<Playqueue> queue_;
     long frames_{0};
     std::atomic_long framesDone_{0};
-    std::atomic_uint binCount_{8};  // NOLINT(readability-magic-numbers)
+    static constexpr auto DefaultBinCount = 8U;
+    std::atomic_uint binCount_{DefaultBinCount};
     long seekFrames_{0};
     const State& start();
     void stop();

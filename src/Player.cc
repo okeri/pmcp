@@ -4,6 +4,7 @@
 #include "Player.hh"
 #include "Config.hh"
 
+namespace {
 template <class Pred>
 decltype(auto) bufferAction(
     SampleFormat format, const AudioBuffer& buffer, Pred pred) {
@@ -46,10 +47,11 @@ std::vector<float> calculateBins(
             return std::vector<double>(1, 1.);
         }
 
+        constexpr auto HannCoeff = 0.5;
+        constexpr auto TwoPi = 2.0 * M_PI;
         auto result = std::vector<double>(num);
-        for (auto i = 0U, start = 1 - num; i < num; ++i) {
-            // NOLINTNEXTLINE(readability-magic-numbers)
-            result[i] = 0.5 + 0.5 * cos(M_PI * (start + (i << 1)) / (num - 1));
+        for (auto i = 0U; i < num; ++i) {
+            result[i] = HannCoeff - (HannCoeff * cos(TwoPi * i / (num - 1)));
         }
         return result;
     };
@@ -80,7 +82,8 @@ std::vector<float> calculateBins(
     };
 
     static auto audio = std::array<double, MaxFFT>{};
-    static auto frequences = std::array<std::complex<double>, MaxFFT / 2 + 1>{};
+    static auto frequences =
+        std::array<std::complex<double>, (MaxFFT / 2) + 1>{};
     static auto window = hanning(fftSize);
     static auto scale = binSpace(binCount, fftSize, params.rate);
     static auto fft = FFT(fftSize, audio.data(), frequences.data());
@@ -97,7 +100,11 @@ std::vector<float> calculateBins(
     bufferAction(params.format, buffer,
         [&params](auto* frames, [[maybe_unused]] unsigned frameCount) {
             using SampleType = std::remove_pointer_t<decltype(frames)>;
-            constexpr auto NormValue = std::numeric_limits<SampleType>::max();
+            const auto normValue =
+                params.format == SampleFormat::S24
+                    ? static_cast<double>((1 << 23) - 1)
+                    : static_cast<double>(
+                          std::numeric_limits<SampleType>::max());
             auto avg = [](SampleType val1, SampleType val2) {
                 if constexpr (std::is_signed<SampleType>()) {
                     return (std::abs(static_cast<double>(val1)) +
@@ -112,11 +119,11 @@ std::vector<float> calculateBins(
             for (auto i = 0UL; i < window.size(); ++i) {
                 // 2 channels
                 if (params.channelCount == 2) {
-                    audio[i] = avg(frames[i * 2], frames[i * 2 + 1]) *
-                               window[i] / NormValue;
+                    audio[i] = avg(frames[i * 2], frames[(i * 2) + 1]) *
+                               window[i] / normValue;
                 } else {
                     audio[i] =
-                        static_cast<double>(frames[i]) * window[i] / NormValue;
+                        static_cast<double>(frames[i]) * window[i] / normValue;
                 }
             }
         });
@@ -126,7 +133,10 @@ std::vector<float> calculateBins(
         for (auto i = low; i < high && i < fftSize / 2; ++i) {
             value = std::max(value, std::abs(frequences[i]));
         }
-        value = 20 * log(2 * value) / 100;  // NOLINT(readability-magic-numbers)
+        constexpr auto DbConvFactor = 20.;
+        constexpr auto AmplFactor = 2.;
+        constexpr auto NormDiv = 100.;
+        value = DbConvFactor * log(AmplFactor * value) / NormDiv;
         return std::clamp(
             std::isnan(value) ? 0.F : static_cast<float>(value), 0.F, 1.F);
     };
@@ -136,12 +146,16 @@ std::vector<float> calculateBins(
         result[bin] = chooseMagnitude(scale[bin], scale[bin + 1]);
     }
 
-    result.back() = chooseMagnitude(scale[binCount - 1], HighFreq);
+    result.back() = chooseMagnitude(scale[binCount - 1],
+        static_cast<unsigned>(
+            static_cast<double>(HighFreq) * fftSize / static_cast<double>(params.rate)));
     return result;
 }
 
 #endif
 
+}  // namespace
+   //
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
 Player::Player(Sender<Msg> progressSender, int argc, char* argv[]) noexcept :
     state_(Stopped()),
@@ -152,7 +166,7 @@ Player::Player(Sender<Msg> progressSender, int argc, char* argv[]) noexcept :
             bufferAction(params_.format, buffer,
                 [this](auto* frames, unsigned frameCount) {
                     for (auto i = 0U; i < frameCount * params_.channelCount;
-                         ++i) {
+                        ++i) {
                         frames[i] *= params_.volume;
                     }
                 });

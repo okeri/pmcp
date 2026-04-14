@@ -105,11 +105,11 @@ class Source::Impl {
             }
         };
         if (sndfile_) {
-            return {format(sndfile_.format() & SF_FORMAT_SUBMASK),
-                static_cast<unsigned>(sndfile_.channels()),
-                static_cast<unsigned>(sndfile_.samplerate())};
+            return {.format = format(sndfile_.format() & SF_FORMAT_SUBMASK),
+                .channelCount = static_cast<unsigned>(sndfile_.channels()),
+                .rate = sndfile_.samplerate()};
         }
-        return {SampleFormat::U8, 0, 0};
+        return {.format = SampleFormat::U8, .channelCount = 0, .rate = 0};
     }
 
     [[nodiscard]] long frames() const noexcept {

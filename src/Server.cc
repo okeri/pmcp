@@ -13,7 +13,7 @@ Server::Server(const char* socketPath) :
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, socketPath, sizeof(addr.sun_path));
     unlink(socketPath);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,clang-analyzer-unix.StdCLibraryFunctions)
     if (bind(socket_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
         throw std::runtime_error("cannot bind socket");
     }

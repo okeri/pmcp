@@ -44,7 +44,7 @@ class Terminal {
         enum class CSI { Reset, Clear, ClearDecoration, Invert, NoInvert };
 
         Plane(const Plane&) = delete;
-        Plane(Plane&& other) noexcept = default;
+        Plane(Plane&& other) noexcept;
         Plane& operator=(const Plane&) = delete;
         Plane& operator=(Plane&&) = delete;
         ~Plane();
@@ -66,7 +66,7 @@ class Terminal {
     ~Terminal();
 
     Terminal& operator<<(const Plane& plane) noexcept;
-    Plane createPlane(const Bounds& pos) noexcept;
+    static Plane createPlane(const Bounds& pos) noexcept;
     static Size size() noexcept;
     static void render() noexcept;
 

@@ -17,6 +17,7 @@ class Playlist final : public ScrollableElements {
         Entry(std::wstring songTitle, std::string filePath,
             std::optional<unsigned> songDuration);
         [[nodiscard]] bool isDir() const noexcept;
+        bool operator==(const Entry&) const = default;
         auto operator<=>(const Entry& other) const;
     };
 
@@ -46,7 +47,7 @@ class Playlist final : public ScrollableElements {
 
     const Entry& operator[](unsigned index) const noexcept;
     std::vector<Entry> recursiveCollect(unsigned index);
-    std::optional<std::pair<unsigned, unsigned>> move(bool up) noexcept;
+    std::optional<std::pair<unsigned, unsigned>> move(bool moveUp) noexcept;
 
   private:
     std::optional<unsigned> selected_;

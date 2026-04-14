@@ -14,22 +14,23 @@ const std::vector<std::wstring> keyNames = {L"backspace", L"left", L"right",
 
 constexpr auto NamesStart = 0x110002;
 
-constexpr input::Key operator&(const input::Key a, const input::Key b) {
-    return static_cast<input::Key>(std::underlying_type_t<input::Key>(a) &
-                                   std::underlying_type_t<input::Key>(b));
+constexpr input::Key operator&(const input::Key lhs, const input::Key rhs) {
+    return static_cast<input::Key>(std::underlying_type_t<input::Key>(lhs) &
+                                   std::underlying_type_t<input::Key>(rhs));
 }
 
 constexpr input::Key operator~(const input::Key key) {
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     return static_cast<input::Key>(~std::underlying_type_t<input::Key>(key));
 }
 
-constexpr input::Key& operator&=(input::Key& a, const input::Key b) {
-    return a = a & b;
+constexpr input::Key& operator&=(input::Key& lhs, const input::Key rhs) {
+    return lhs = lhs & rhs;
 }
 
 input::Key keyFromName(const std::wstring_view& name) {
     auto low = std::wstring(name);
-    std::transform(low.begin(), low.end(), low.begin(),
+    std::ranges::transform(low, low.begin(),
         [](wchar_t sym) { return std::tolower(sym); });
     if (low == L"alt") {
         return input::Key::AltBase;
@@ -37,12 +38,12 @@ input::Key keyFromName(const std::wstring_view& name) {
     if (low == L"ctrl") {
         return input::Key::CtrlBase;
     }
-    if (auto found = std::find(keyNames.begin(), keyNames.end(), low);
+    if (auto found = std::ranges::find(keyNames, low);
         found != keyNames.end()) {
         return static_cast<input::Key>(
             NamesStart + std::distance(keyNames.begin(), found));
     }
-    return static_cast<input::Key>(name[0]);
+    return input::key(name[0]);
 }
 
 template <typename Pred, typename IsSep>
@@ -79,55 +80,55 @@ struct ActionDescription {
 
 constexpr auto Count = static_cast<unsigned>(Action::Count);
 const std::array<ActionDescription, Count> descriptions{{
-    {"quit", L"Quit program"},
-    {"go", L"Play a playlist entry or file or enter to directory"},
-    {"up", L"Up"},
-    {"down", L"Down"},
-    {"pgup", L"Page up"},
-    {"pgdown", L"Page down"},
-    {"home", L"Home"},
-    {"end", L"End"},
-    {"stop", L"Stop playing"},
-    {"next", L"Next song"},
-    {"prev", L"Previous song"},
-    {"pause", L"Toggle pause"},
-    {"moveup", L"Move song up in playlist"},
-    {"movedown", L"Move song down in playlist"},
-    {"toggle", L"Switch between playlists"},
-    {"toggle_progress", L"Toggle progress bar display"},
-    {"toggle_shuffle", L"Toggle Shuffle option"},
-    {"toggle_repeat", L"Toggle Repeat option"},
-    {"toggle_next", L"Toggle Next option"},
-    {"lyrics", L"Show/hide lyrics display"},
-    {"help", L"Show/hide this help"},
-    {"toggle_visualization", L"Show/hide visualization"},
-    {"add_to_playlist", L"Add file/directory to playlist"},
-    {"delete", L"Remove selected item from playlist"},
-    {"clear", L"Clear playlist"},
-    {"ff", L"Forward"},
-    {"rew", L"Rewind"},
-    {"reset_view", L"Exit to playlists view"},
-    {"volup1", L"Volume up 1%"},
-    {"voldown1", L"Volume down 1%"},
-    {"volup5", L"Volume up 5%"},
-    {"voldown5", L"Volume down 5%"},
-    {"volset10", L"Set volume to 10%"},
-    {"volset20", L"Set volume to 20%"},
-    {"volset30", L"Set volume to 30%"},
-    {"volset40", L"Set volume to 40%"},
-    {"volset50", L"Set volume to 50%"},
-    {"volset60", L"Set volume to 60%"},
-    {"volset70", L"Set volume to 70%"},
-    {"volset80", L"Set volume to 80%"},
-    {"volset90", L"Set volume to 90%"},
-    {"volset100", L"Set volume to 100%"},
+    {.name = "quit", .description = L"Quit program"},
+    {.name = "go", .description = L"Play a playlist entry or file or enter to directory"},
+    {.name = "up", .description = L"Up"},
+    {.name = "down", .description = L"Down"},
+    {.name = "pgup", .description = L"Page up"},
+    {.name = "pgdown", .description = L"Page down"},
+    {.name = "home", .description = L"Home"},
+    {.name = "end", .description = L"End"},
+    {.name = "stop", .description = L"Stop playing"},
+    {.name = "next", .description = L"Next song"},
+    {.name = "prev", .description = L"Previous song"},
+    {.name = "pause", .description = L"Toggle pause"},
+    {.name = "moveup", .description = L"Move song up in playlist"},
+    {.name = "movedown", .description = L"Move song down in playlist"},
+    {.name = "toggle", .description = L"Switch between playlists"},
+    {.name = "toggle_progress", .description = L"Toggle progress bar display"},
+    {.name = "toggle_shuffle", .description = L"Toggle Shuffle option"},
+    {.name = "toggle_repeat", .description = L"Toggle Repeat option"},
+    {.name = "toggle_next", .description = L"Toggle Next option"},
+    {.name = "lyrics", .description = L"Show/hide lyrics display"},
+    {.name = "help", .description = L"Show/hide this help"},
+    {.name = "toggle_visualization", .description = L"Show/hide visualization"},
+    {.name = "add_to_playlist", .description = L"Add file/directory to playlist"},
+    {.name = "delete", .description = L"Remove selected item from playlist"},
+    {.name = "clear", .description = L"Clear playlist"},
+    {.name = "ff", .description = L"Forward"},
+    {.name = "rew", .description = L"Rewind"},
+    {.name = "reset_view", .description = L"Exit to playlists view"},
+    {.name = "volup1", .description = L"Volume up 1%"},
+    {.name = "voldown1", .description = L"Volume down 1%"},
+    {.name = "volup5", .description = L"Volume up 5%"},
+    {.name = "voldown5", .description = L"Volume down 5%"},
+    {.name = "volset10", .description = L"Set volume to 10%"},
+    {.name = "volset20", .description = L"Set volume to 20%"},
+    {.name = "volset30", .description = L"Set volume to 30%"},
+    {.name = "volset40", .description = L"Set volume to 40%"},
+    {.name = "volset50", .description = L"Set volume to 50%"},
+    {.name = "volset60", .description = L"Set volume to 60%"},
+    {.name = "volset70", .description = L"Set volume to 70%"},
+    {.name = "volset80", .description = L"Set volume to 80%"},
+    {.name = "volset90", .description = L"Set volume to 90%"},
+    {.name = "volset100", .description = L"Set volume to 100%"},
 }};
 
 }  // namespace
 
 Keymap::Keymap(const std::string& path) :
-    keymap_({{static_cast<input::Key>('q'), Action::Quit},
-        {static_cast<input::Key>('Q'), Action::Quit}, {input::Up, Action::Up},
+    keymap_({{input::key('q'), Action::Quit},
+        {input::key('Q'), Action::Quit}, {input::Up, Action::Up},
         {input::Down, Action::Down}, {input::Left, Action::Rew},
         {input::Right, Action::FF}, {input::PgUp, Action::PgUp},
         {input::PgDown, Action::PgDown}, {input::Home, Action::Home},
@@ -135,49 +136,47 @@ Keymap::Keymap(const std::string& path) :
         {input::Tab, Action::ToggleLists},
         {input::Up | input::Key::AltBase, Action::MoveUp},
         {input::Down | input::Key::AltBase, Action::MoveDown},
-        {static_cast<input::Key>('s'), Action::Stop},
-        {static_cast<input::Key>('n'), Action::Next},
-        {static_cast<input::Key>('b'), Action::Prev},
-        {static_cast<input::Key>(' '), Action::Pause},
-        {static_cast<input::Key>('p'), Action::Pause},
-        {static_cast<input::Key>('A'), Action::AddToPlaylist},
-        {static_cast<input::Key>('a'), Action::AddToPlaylist},
-        {static_cast<input::Key>('P'), Action::ToggleProgress},
-        {static_cast<input::Key>('S'), Action::ToggleShuffle},
-        {static_cast<input::Key>('R'), Action::ToggleRepeat},
-        {static_cast<input::Key>('N'), Action::ToggleNext},
-        {static_cast<input::Key>('X'), Action::ToggleNext},
-        {static_cast<input::Key>('L'), Action::ToggleLyrics},
-        {static_cast<input::Key>('h'), Action::ToggleHelp},
-        {static_cast<input::Key>('?'), Action::ToggleHelp},
+        {input::key('s'), Action::Stop},
+        {input::key('n'), Action::Next},
+        {input::key('b'), Action::Prev},
+        {input::key(' '), Action::Pause},
+        {input::key('p'), Action::Pause},
+        {input::key('A'), Action::AddToPlaylist},
+        {input::key('a'), Action::AddToPlaylist},
+        {input::key('P'), Action::ToggleProgress},
+        {input::key('S'), Action::ToggleShuffle},
+        {input::key('R'), Action::ToggleRepeat},
+        {input::key('N'), Action::ToggleNext},
+        {input::key('X'), Action::ToggleNext},
+        {input::key('L'), Action::ToggleLyrics},
+        {input::key('h'), Action::ToggleHelp},
+        {input::key('?'), Action::ToggleHelp},
 #ifdef ENABLE_SPECTRALIZER
-        {static_cast<input::Key>('V'), Action::ToggleSpectralizer},
+        {input::key('V'), Action::ToggleSpectralizer},
 #endif
-        {static_cast<input::Key>('d'), Action::Delete},
-        {static_cast<input::Key>('C'), Action::Clear},
-        {static_cast<input::Key>('x') | input::Key::CtrlBase,
-            Action::ResetView},
+        {input::key('d'), Action::Delete},
+        {input::key('C'), Action::Clear},
+        {input::key('x') | input::Key::CtrlBase, Action::ResetView},
         {input::Esc, Action::ResetView},
-        {static_cast<input::Key>('>'), Action::VolUp1},
-        {static_cast<input::Key>('<'), Action::VolDn1},
-        {static_cast<input::Key>('.'), Action::VolUp5},
-        {static_cast<input::Key>(','), Action::VolDn5},
-        {static_cast<input::Key>('1') | input::Key::AltBase, Action::VolSet10},
-        {static_cast<input::Key>('2') | input::Key::AltBase, Action::VolSet20},
-        {static_cast<input::Key>('3') | input::Key::AltBase, Action::VolSet30},
-        {static_cast<input::Key>('4') | input::Key::AltBase, Action::VolSet40},
-        {static_cast<input::Key>('5') | input::Key::AltBase, Action::VolSet50},
-        {static_cast<input::Key>('6') | input::Key::AltBase, Action::VolSet60},
-        {static_cast<input::Key>('7') | input::Key::AltBase, Action::VolSet70},
-        {static_cast<input::Key>('8') | input::Key::AltBase, Action::VolSet80},
-        {static_cast<input::Key>('9') | input::Key::AltBase, Action::VolSet90},
-        {static_cast<input::Key>('0') | input::Key::AltBase,
-            Action::VolSet100}}) {
+        {input::key('>'), Action::VolUp1},
+        {input::key('<'), Action::VolDn1},
+        {input::key('.'), Action::VolUp5},
+        {input::key(','), Action::VolDn5},
+        {input::key('1') | input::Key::AltBase, Action::VolSet10},
+        {input::key('2') | input::Key::AltBase, Action::VolSet20},
+        {input::key('3') | input::Key::AltBase, Action::VolSet30},
+        {input::key('4') | input::Key::AltBase, Action::VolSet40},
+        {input::key('5') | input::Key::AltBase, Action::VolSet50},
+        {input::key('6') | input::Key::AltBase, Action::VolSet60},
+        {input::key('7') | input::Key::AltBase, Action::VolSet70},
+        {input::key('8') | input::Key::AltBase, Action::VolSet80},
+        {input::key('9') | input::Key::AltBase, Action::VolSet90},
+        {input::key('0') | input::Key::AltBase, Action::VolSet100}}) {
     auto parseKey = [](std::wstring_view strKey) {
         auto mods = input::Null;
         auto result = input::Null;
         if (strKey.length() == 1) {
-            return static_cast<input::Key>(strKey[0]);
+            return input::key(strKey[0]);
         }
         strBreak(
             strKey,
@@ -206,9 +205,10 @@ Keymap::Keymap(const std::string& path) :
     };
 
     auto parseAction = [](const auto& strAction) {
-        if (auto found = std::find_if(descriptions.begin(), descriptions.end(),
-                [&strAction](
-                    const auto& entry) { return entry.name == strAction; });
+        if (auto found = std::ranges::find_if(descriptions,
+                [&strAction](const auto& entry) {
+                    return entry.name == strAction;
+                });
             found != descriptions.end()) {
             return static_cast<Action>(
                 std::distance(descriptions.begin(), found));
@@ -247,7 +247,7 @@ std::wstring Keymap::name(input::Key key) {
     if (key == input::Key::Null) {
     } else if (key == L' ') {
         result += L"space";
-    } else if (key < 0x110000) {  // NOLINT(readability-magic-numbers)
+    } else if (key < input::Key::SpecialBase) {
         result += static_cast<wchar_t>(key);
     } else if (key >= NamesStart &&
                key < NamesStart + static_cast<int>(keyNames.size())) {

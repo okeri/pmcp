@@ -3,8 +3,8 @@
 Help::Help(const Keymap& keymap) noexcept {
     constexpr auto Count = static_cast<unsigned>(Action::Count);
     auto reversed = std::vector<std::vector<input::Key>>{Count};
-    for (const auto& [k, v] : keymap.keymap_) {
-        reversed[static_cast<unsigned>(v)].push_back(k);
+    for (const auto& [key, val] : keymap.keymap_) {
+        reversed[static_cast<unsigned>(val)].push_back(key);
     }
 
     data_.reserve(Count);

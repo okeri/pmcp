@@ -71,12 +71,12 @@ void Playlist::down(unsigned offset) noexcept {
     if (items_.empty()) {
         return;
     }
-    auto max = items_.size() - 1;
+    auto maxIndex = items_.size() - 1;
     auto index = selected_.value_or(playing_.value_or(MaxSelected));
     if (index != MaxSelected) {
         index += offset;
-        if (index > max) {
-            index = max;
+        if (index > maxIndex) {
+            index = maxIndex;
         }
     } else {
         index = 0;
@@ -166,7 +166,7 @@ std::vector<Playlist::Entry> Playlist::recursiveCollect(unsigned index) {
             result.emplace_back(entry.path().string(), false);
         }
     }
-    std::sort(result.begin(), result.end());
+    std::ranges::sort(result);
     return result;
 }
 
@@ -185,7 +185,7 @@ std::vector<Playlist::Entry> Playlist::collect(const std::string& path) {
             result.emplace_back(entry.path().string(), false);
         }
     }
-    std::sort(result.begin(), result.end());
+    std::ranges::sort(result);
     return result;
 }
 
@@ -213,7 +213,7 @@ Playlist Playlist::load(const std::string& path) {
                     entry.duration = dur;
                     entry.title = utf8::convert(line.substr(end + 1));
                 }
-            } else if (line.length() > 0 && line[0] != '#') {
+            } else if (!line.empty() && line[0] != '#') {
                 entry.path = line;
                 entries.push_back(entry);
             }
@@ -228,8 +228,7 @@ void Playlist::save(const std::string& path) {
     output << "#EXTM3U"
            << "\n";
     for (const auto& item : items_) {
-        if (!item.isDir()) {
-            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+        if (item.duration.has_value()) {
             output << "#EXTINF:" << *item.duration << ","
                    << utf8::convert(item.title) << "\n";
             output << item.path << "\n";
@@ -237,16 +236,16 @@ void Playlist::save(const std::string& path) {
     }
 }
 
-std::optional<std::pair<unsigned, unsigned>> Playlist::move(bool up) noexcept {
+std::optional<std::pair<unsigned, unsigned>> Playlist::move(bool moveUp) noexcept {
     if (items_.size() < 2) {
         return {};
     }
     auto oldPos = selected_.value_or(playing_.value_or(MaxSelected));
-    if (oldPos == MaxSelected || (up && oldPos == 0) ||
-        (!up && oldPos == items_.size() - 1)) {
+    if (oldPos == MaxSelected || (moveUp && oldPos == 0) ||
+        (!moveUp && oldPos == items_.size() - 1)) {
         return {};
     }
-    auto newPos = oldPos + (up ? -1 : 1);
+    auto newPos = oldPos + (moveUp ? -1 : 1);
     std::swap(items_[oldPos], items_[newPos]);
     auto changeIf = [&oldPos, &newPos](auto& val) {
         if (val) {

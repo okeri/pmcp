@@ -20,7 +20,7 @@ class Spectralizer {
         return state_;
     }
 
-    [[nodiscard]] const std::vector<float>& bins() {
+    [[nodiscard]] const std::vector<float>& bins() const {
         return bins_;
     }
 

@@ -35,8 +35,10 @@ EventLoop::EventLoop(
             auto poll = epoll_create1(EPOLL_CLOEXEC);
 
             constexpr auto MaxEvents = 3;
-            epoll_event evs[] = {{EPOLLIN, {.fd = STDIN_FILENO}},
-                {EPOLLIN, {.fd = srv.socket()}}, {0, {.fd = -1}}};
+            epoll_event evs[] = {
+                {.events = EPOLLIN, .data = {.fd = STDIN_FILENO}},
+                {.events = EPOLLIN, .data = {.fd = srv.socket()}},
+                {.events = 0, .data = {.fd = -1}}};
 
             for (auto i = 0; i < 2; ++i) {
                 epoll_ctl(poll, EPOLL_CTL_ADD, evs[i].data.fd, &evs[i]);

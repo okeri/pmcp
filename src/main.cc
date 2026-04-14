@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdint>
 
 #include "input.hh"
 
@@ -12,7 +13,7 @@
 #include "Config.hh"
 
 class App {
-    enum class DrawFlags : unsigned {
+    enum class DrawFlags : std::uint8_t {
         None = 0x0,
         Content = 0x1,
         Status = 0x2,
@@ -35,19 +36,20 @@ class App {
         auto statusSize = config().options.showProgress ? 2U : 1U;
         auto contentSize = size.rows - statusSize;
 #ifdef ENABLE_SPECTRALIZER
-        // NOLINTBEGIN(readability-magic-numbers)
-        auto spectrSize = config().options.spectralizer && contentSize > 15
-                              ? std::max(5U, contentSize / 3)
+        constexpr auto MinContentForSpectr = 15U;
+        constexpr auto MinSpectrHeight = 5U;
+        constexpr auto SpectrContentFraction = 3U;
+        auto spectrSize = config().options.spectralizer && contentSize > MinContentForSpectr
+                              ? std::max(MinSpectrHeight, contentSize / SpectrContentFraction)
                               : 0;
-        // NOLINTEND(readability-magic-numbers)
         contentSize -= spectrSize;
 #else
         constexpr auto spectrSize = 0u;
 #endif
         pageSize_ = contentSize - 2;
-        planes_[0].resize({0, 0, size.cols, contentSize});
-        planes_[1].resize({0, contentSize, size.cols, spectrSize});
-        planes_[2].resize({0, contentSize + spectrSize, size.cols, statusSize});
+        planes_[0].resize({.left = 0, .top = 0, .cols = size.cols, .rows = contentSize});
+        planes_[1].resize({.left = 0, .top = contentSize, .cols = size.cols, .rows = spectrSize});
+        planes_[2].resize({.left = 0, .top = contentSize + spectrSize, .cols = size.cols, .rows = statusSize});
     }
 
   public:
@@ -55,8 +57,9 @@ class App {
         char* argv[]) noexcept :
         keymap_(keymap),
         planes_(
-            {term().createPlane({0, 0, 0, 0}), term().createPlane({0, 0, 0, 0}),
-                term().createPlane({0, 0, 0, 0})}),
+            {Terminal::createPlane({.left = 0, .top = 0, .cols = 0, .rows = 0}),
+                Terminal::createPlane({.left = 0, .top = 0, .cols = 0, .rows = 0}),
+                Terminal::createPlane({.left = 0, .top = 0, .cols = 0, .rows = 0})}),
         player_(sender, argc, argv),
         help_(keymap),
         lyrics_(
@@ -81,7 +84,7 @@ class App {
         auto setActive = [this](auto& widget) { activeContent_ = &widget; };
         auto modVolume = [this](double perc) {
             auto vol = player_.streamParams().volume;
-            player_.setVolume(std::clamp(vol * perc + vol, 0., 1.));
+            player_.setVolume(std::clamp((vol * perc) + vol, 0., 1.));
         };
 
         auto result = DrawFlags::Status;

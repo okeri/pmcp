@@ -32,7 +32,7 @@ class PlayerView {
     void clear() noexcept;
     void delSelected() noexcept;
     void addToPlaylist() noexcept;
-    void markPlaying(const std::optional<unsigned>& id) noexcept;
+    void markPlaying(const std::optional<unsigned>& playIndex) noexcept;
     std::optional<Playqueue> enter() noexcept;
     [[nodiscard]] const wchar_t* currentPath() const noexcept;
     Playlist* playlist() noexcept;

@@ -10,17 +10,18 @@ namespace {
 
 std::optional<unsigned> parseInt(std::string_view strVal) {
     const auto* start = strVal.begin();
-    // NOLINTBEGIN(readability-magic-numbers)
-    int base = 10;
+    constexpr auto DecimalBase = 10;
+    constexpr auto HexBase = 16;
+    int base = DecimalBase;
     while (isblank(*start) != 0 && start < strVal.end()) {
         start++;
     }
     if (strVal.end() - start > 1) {
         if (start[0] == '0' && (start[1] == 'x' || start[1] == 'X')) {
-            base = 16;
+            base = HexBase;
             start += 2;
         } else if (start[0] == '#') {
-            base = 16;
+            base = HexBase;
             ++start;
         }
     }
@@ -30,13 +31,12 @@ std::optional<unsigned> parseInt(std::string_view strVal) {
     if (err.ec == std::errc()) {
         return uintVal;
     }
-    if (base == 10) {
-        err = std::from_chars(start, strVal.end(), uintVal, 16);
+    if (base == DecimalBase) {
+        err = std::from_chars(start, strVal.end(), uintVal, HexBase);
         return (
             err.ec == std::errc() ? std::make_optional(uintVal) : std::nullopt);
     }
     return {};
-    // NOLINTEND(readability-magic-numbers)
 }
 
 }  // namespace
@@ -53,7 +53,7 @@ void Theme::load(const char* path) {
         "brightmagenta", "brightcyan", "brightwhite"};
 
     auto parseColor = [&stdColors](const std::string& strVal) -> Color {
-        if (auto* clrIt = std::find(stdColors.begin(), stdColors.end(), strVal);
+        if (auto* clrIt = std::ranges::find(stdColors, strVal);
             clrIt != stdColors.end()) {
             return static_cast<unsigned char>(
                 std::distance(stdColors.begin(), clrIt));
@@ -133,31 +133,30 @@ void Theme::load(const char* path) {
             }
         }
     } else {
-        // NOLINTBEGIN(readability-magic-numbers)
+        constexpr auto AnsiRed = static_cast<unsigned char>(1);
+        constexpr auto AnsiYellow = static_cast<unsigned char>(3);
+        constexpr auto AnsiBlue = static_cast<unsigned char>(4);
+        constexpr auto AnsiCyan = static_cast<unsigned char>(6);
         self.styles_ = {{{}, {}, Decoration::None}, {{}, {}, Decoration::Dim},
-            {static_cast<unsigned char>(4), {}, Decoration::None},
+            {AnsiBlue, {}, Decoration::None},
             {{}, {}, Decoration::Dim}, {{}, {}, Decoration::None},
-            {{}, static_cast<unsigned char>(4), Decoration::Bold},
-            {static_cast<unsigned char>(3), {},
-                Decoration::Bold | Decoration::Underline},
+            {{}, AnsiBlue, Decoration::Bold},
+            {AnsiYellow, {}, Decoration::Bold | Decoration::Underline},
             {{}, {}, Decoration::None},
-            {static_cast<unsigned char>(6), {}, Decoration::Dim},
-            {static_cast<unsigned char>(6), static_cast<unsigned char>(4),
-                Decoration::None},
-            {static_cast<unsigned char>(6), {}, Decoration::Dim},
-            {static_cast<unsigned char>(6), static_cast<unsigned char>(4),
-                Decoration::None},
+            {AnsiCyan, {}, Decoration::Dim},
+            {AnsiCyan, AnsiBlue, Decoration::None},
+            {AnsiCyan, {}, Decoration::Dim},
+            {AnsiCyan, AnsiBlue, Decoration::None},
             {{}, {}, Decoration::Dim},
-            {static_cast<unsigned char>(3), {}, Decoration::Dim},
+            {AnsiYellow, {}, Decoration::Dim},
             {{}, {}, Decoration::Dim}, {{}, {}, Decoration::Bold},
-            {static_cast<unsigned char>(4), {}, Decoration::Bold},
-            {static_cast<unsigned char>(6), {}, Decoration::Bold},
-            {static_cast<unsigned char>(3), {}, Decoration::Dim},
-            {static_cast<unsigned char>(3), {}, Decoration::Dim},
+            {AnsiBlue, {}, Decoration::Bold},
+            {AnsiCyan, {}, Decoration::Bold},
+            {AnsiYellow, {}, Decoration::Dim},
+            {AnsiYellow, {}, Decoration::Dim},
             {{}, {}, Decoration::Dim},
-            {{}, static_cast<unsigned char>(4), Decoration::Bold},
-            {static_cast<unsigned char>(1), {}, Decoration::None}};
-        // NOLINTEND(readability-magic-numbers)
+            {{}, AnsiBlue, Decoration::Bold},
+            {AnsiRed, {}, Decoration::None}};
     }
 
     if (auto line = root["line"]) {

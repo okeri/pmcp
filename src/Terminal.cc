@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <cstdint>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <termios.h>
@@ -11,7 +12,7 @@ namespace {
 
 constexpr auto CSIPrefix = L"\x1b[";
 
-enum class CSI {
+enum class CSI : std::uint8_t {
     Reset,
     ShowCursor,
     HideCursor,
@@ -47,17 +48,18 @@ const std::vector<std::wstring>& styles() {
                             return std::wstring(L"5;") + std::to_wstring(value);
                         } else if constexpr (std::is_same<ColorType,
                                                  unsigned>()) {
-                            // NOLINTBEGIN(readability-magic-numbers)
+                            constexpr auto RedShift = 16U;
+                            constexpr auto BlueShift = 8U;
+                            constexpr auto ColorMask = 0xFFU;
                             auto red = [](unsigned colorVal) {
-                                return (colorVal >> 16U) & 0xFFU;
+                                return (colorVal >> RedShift) & ColorMask;
                             };
                             auto blue = [](unsigned colorVal) {
-                                return (colorVal >> 8U) & 0xFFU;
+                                return (colorVal >> BlueShift) & ColorMask;
                             };
                             auto green = [](unsigned colorVal) {
-                                return (colorVal & 0xFFU);
+                                return (colorVal & ColorMask);
                             };
-                            // NOLINTEND(readability-magic-numbers)
                             return std::wstring(L"2;") +
                                    std::to_wstring(red(value)) + L';' +
                                    std::to_wstring(blue(value)) + L';' +
@@ -104,7 +106,7 @@ const std::vector<std::wstring>& styles() {
     return result;
 }
 
-enum class Flags : unsigned {
+enum class Flags : std::uint8_t {
     None = 0,
     HasStyle = 0x1,
     Hidden = 0x2,
@@ -114,26 +116,27 @@ enum class Flags : unsigned {
     Multi = 0x20
 };
 
-constexpr Flags operator|(const Flags a, const Flags b) {
+constexpr Flags operator|(const Flags lhs, const Flags rhs) {
     return static_cast<Flags>(
-        std::underlying_type_t<Flags>(a) | std::underlying_type_t<Flags>(b));
+        std::underlying_type_t<Flags>(lhs) | std::underlying_type_t<Flags>(rhs));
 }
 
-constexpr Flags& operator|=(Flags& a, const Flags b) {
-    return a = a | b;
+constexpr Flags& operator|=(Flags& lhs, const Flags rhs) {
+    return lhs = lhs | rhs;
 }
 
-constexpr Flags operator&(const Flags a, const Flags b) {
+constexpr Flags operator&(const Flags lhs, const Flags rhs) {
     return static_cast<Flags>(
-        std::underlying_type_t<Flags>(a) & std::underlying_type_t<Flags>(b));
+        std::underlying_type_t<Flags>(lhs) & std::underlying_type_t<Flags>(rhs));
 }
 
 constexpr Flags operator~(const Flags flags) {
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     return static_cast<Flags>(~std::underlying_type_t<Flags>(flags));
 }
 
-constexpr Flags& operator&=(Flags& a, const Flags b) {
-    return a = a & b;
+constexpr Flags& operator&=(Flags& lhs, const Flags rhs) {
+    return lhs = lhs & rhs;
 }
 
 class Cell {
@@ -240,7 +243,7 @@ class Terminal::Plane::Impl {
         return size_.rows * size_.cols;
     }
 
-    inline void inc(unsigned& cursor) noexcept {
+    void inc(unsigned& cursor) noexcept {
         if (cursor < cells_.size() - 1) {
             ++cursor;
         }
@@ -267,7 +270,7 @@ class Terminal::Plane::Impl {
     explicit Impl(const Bounds& pos) noexcept :
         left_(pos.left),
         top_(pos.top),
-        size_({pos.cols, pos.rows}),
+        size_({.cols = pos.cols, .rows = pos.rows}),
         cells_(calcCellSize()) {
     }
 
@@ -302,7 +305,7 @@ class Terminal::Plane::Impl {
 
             case CSI::Clear:
                 cursor_ = 0;
-                std::fill(cells_.begin(), cells_.end(), Cell());
+                std::ranges::fill(cells_, Cell());
                 break;
 
             case CSI::ClearDecoration:
@@ -312,7 +315,7 @@ class Terminal::Plane::Impl {
     }
 
     void operator<<(const Cursor& cursor) noexcept {
-        cursor_ = std::clamp(cursor.y * size_.cols + cursor.x, 0U,
+        cursor_ = std::clamp((cursor.y * size_.cols) + cursor.x, 0U,
             static_cast<unsigned>(cells_.size() - 1));
     }
 
@@ -336,7 +339,7 @@ class Terminal::Plane::Impl {
             return;
         }
         auto calcCursor = [&width](
-                              unsigned x, unsigned y) { return y * width + x; };
+                              unsigned col, unsigned row) { return (row * width) + col; };
         auto cursor = calcCursor(pos.left, pos.top);
         auto maxlen = pos.cols - 4;
         if (caption.length() > maxlen) {
@@ -352,7 +355,7 @@ class Terminal::Plane::Impl {
             auto len = Cell::width(caption);
             auto captionTruncated =
                 len > maxlen ? caption.substr(0, maxlen) : caption;
-            auto start = (maxlen - len) / 2 + pos.left;
+            auto start = ((maxlen - len) / 2) + pos.left;
             auto end = calcCursor(start > 0 ? start - 1 : 0, pos.top);
             for (++cursor; cursor < end; ++cursor) {
                 cells_[cursor] = Theme::lineChar(Theme::LineType::Horisontal);
@@ -397,6 +400,7 @@ class Terminal::Plane::Impl {
 };
 
 Terminal::Plane::~Plane() = default;
+Terminal::Plane::Plane(Plane&&) noexcept = default;
 
 [[nodiscard]] Terminal::Size Terminal::Plane::size() const noexcept {
     return impl_->size();
@@ -474,9 +478,9 @@ Terminal::Size Terminal::size() noexcept {
     auto winSize = winsize();
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
     if (ioctl(0, TIOCGWINSZ, &winSize) == 0) {
-        return {winSize.ws_col, winSize.ws_row};
+        return {.cols = winSize.ws_col, .rows = winSize.ws_row};
     }
-    return {0, 0};
+    return {.cols = 0, .rows = 0};
 }
 
 Terminal::Terminal() noexcept {

@@ -44,6 +44,8 @@ class Client {
     }
 };
 
+namespace {
+
 std::string sockPath() {
     const auto* runtimePath =
         getenv("XDG_RUNTIME_DIR");  // NOLINT(concurrency-mt-unsafe)
@@ -53,6 +55,8 @@ std::string sockPath() {
     return "/tmp/pmcp.sock";
 }
 
+}  // namespace
+
 int main(int argc, char* argv[]) {
     std::unordered_map<std::string, Action> actionMap = {{"quit", Action::Quit},
         {"stop", Action::Stop}, {"pause", Action::Pause},
@@ -61,11 +65,12 @@ int main(int argc, char* argv[]) {
     auto usage = [&actionMap](const char* name) {
         std::cout << "usage:" << name << " <";
         std::string sep{};
-        for (const auto& [k, _] : actionMap) {
-            std::cout << sep << k;
+        for (const auto& [cmdName, cmdVal] : actionMap) {
+            std::cout << sep << cmdName;
             sep = "|";
+            (void)cmdVal;
         }
-        std::cout << '>' << std::endl;
+        std::cout << '>' << '\n';
     };
 
     if (argc < 2) {
@@ -73,7 +78,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     auto cmd = std::string(argv[1]);
-    std::transform(cmd.begin(), cmd.end(), cmd.begin(),
+    std::ranges::transform(cmd, cmd.begin(),
         [](unsigned char sym) { return std::tolower(sym); });
 
     auto found = actionMap.find(cmd);
@@ -85,7 +90,7 @@ int main(int argc, char* argv[]) {
         auto client = Client(sockPath());
         client.send(found->second);
     } catch (std::runtime_error& e) {
-        std::cout << e.what() << std::endl;
+        std::cout << e.what() << '\n';
     }
     return 0;
 }

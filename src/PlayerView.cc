@@ -85,9 +85,8 @@ std::optional<Playqueue> PlayerView::enter() noexcept {
             playlistQueued_ = playlistActive_ ? 1 : 0;
             for (auto i = 0U; i < list.count(); ++i) {
                 const auto& item = list[i];
-                if (!item.isDir()) {
+                if (item.duration.has_value()) {
                     qItems.emplace_back(
-                        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
                         i, *item.duration, item.title, item.path);
                     if (i == *sel) {
                         index = static_cast<int>(qItems.size() - 1);
@@ -100,11 +99,11 @@ std::optional<Playqueue> PlayerView::enter() noexcept {
     return {};
 }
 
-void PlayerView::markPlaying(const std::optional<unsigned>& id) noexcept {
+void PlayerView::markPlaying(const std::optional<unsigned>& playIndex) noexcept {
     lists_[0].setPlaying(std::nullopt);
     lists_[1].setPlaying(std::nullopt);
     if (playlistQueued_ > -1) {
-        lists_[playlistQueued_].setPlaying(id);
+        lists_[playlistQueued_].setPlaying(playIndex);
     }
 }
 

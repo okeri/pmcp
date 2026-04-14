@@ -8,10 +8,10 @@ namespace {
 template <class Action, class... Args>
 unsigned modify(
     std::vector<Entry>& items, unsigned index, Action action, Args... args) {
-    auto id = items[index].id;
+    auto entryId = items[index].id;
     action(items.begin(), items.end(), std::forward<Args>(args)...);
     auto found = std::find_if(items.begin(), items.end(),
-        [&id](const auto& item) { return item.id == id; });
+        [&entryId](const auto& item) { return item.id == entryId; });
     if (found != items.end()) {
         return std::distance(items.begin(), found);
     }
@@ -60,7 +60,8 @@ void Playqueue::shuffle() noexcept {
 }
 
 void Playqueue::sort() noexcept {
-    playing_ = modify(items_, playing_, std::sort<decltype(items_)::iterator>);
+    playing_ = modify(items_, playing_,
+        [](auto begin, auto end) { std::ranges::sort(begin, end); });
 }
 
 void Playqueue::swap(unsigned index1, unsigned index2) noexcept {

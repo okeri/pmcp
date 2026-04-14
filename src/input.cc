@@ -73,7 +73,7 @@ Key read() noexcept {
         }
         return Null;
     };
-    // NOLINTBEGIN(readability-magic-numbers)
+    // NOLINTBEGIN(readability-magic-numbers,clang-analyzer-optin.core.EnumCastOutOfRange)
     switch (buffer[0]) {
         case 0x1b:
             if (num == 1) {
@@ -85,6 +85,7 @@ Key read() noexcept {
                 case '[':
                     return lookupCSI(&buffer[2]);
                 default:
+                    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
                     return static_cast<Key>(buffer[1]) | AltBase;
             }
         case '\r':
@@ -104,7 +105,7 @@ Key read() noexcept {
             }
             return static_cast<Key>(buffer[0]);
     }
-    // NOLINTEND(readability-magic-numbers)
+    // NOLINTEND(readability-magic-numbers,clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 }  // namespace input

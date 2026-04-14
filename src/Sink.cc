@@ -10,7 +10,7 @@ namespace {
 
 class PWInit {
   public:
-    PWInit(int argc, char* argv[]) {
+    PWInit(int argc, char* argv[]) noexcept {
         pw_init(&argc, &argv);
     }
 
@@ -32,18 +32,18 @@ class Sink::Impl : private PWInit {
     unsigned stride_{0};
     Sink::BufferFillRoutine fillBuffer_;
 
-    class LoopLock {
+    class ScopedLoopLock {
         pw_thread_loop* loop_;
 
       public:
-        explicit LoopLock(pw_thread_loop* loop) : loop_(loop) {
+        explicit ScopedLoopLock(pw_thread_loop* loop) : loop_(loop) {
             pw_thread_loop_lock(loop_);
         }
-        LoopLock(const LoopLock&) = delete;
-        LoopLock(LoopLock&&) = delete;
-        LoopLock& operator=(const LoopLock&) = delete;
-        LoopLock& operator=(LoopLock&&) = delete;
-        ~LoopLock() {
+        ScopedLoopLock(const ScopedLoopLock&) = delete;
+        ScopedLoopLock(ScopedLoopLock&&) = delete;
+        ScopedLoopLock& operator=(const ScopedLoopLock&) = delete;
+        ScopedLoopLock& operator=(ScopedLoopLock&&) = delete;
+        ~ScopedLoopLock() {
             pw_thread_loop_unlock(loop_);
         }
     };
@@ -63,7 +63,7 @@ class Sink::Impl : private PWInit {
     void stop() noexcept {
         if (stream_ != nullptr) {
             {
-                const LoopLock lock(loop_);
+                const ScopedLoopLock lock(loop_);
                 pw_stream_destroy(stream_);
             }
             pw_thread_loop_stop(loop_);
@@ -73,16 +73,16 @@ class Sink::Impl : private PWInit {
 
     void activate(bool active) const noexcept {
         if (stream_ != nullptr) {
-            const LoopLock lock(loop_);
+            const ScopedLoopLock lock(loop_);
             pw_stream_set_active(stream_, active);
         }
     }
 
     void start(const StreamParams& streamParams) noexcept {
         constexpr auto BufferSize = 1024;
-        const struct spa_pod* params[1];
+        const spa_pod* params[1];
         uint8_t buffer[BufferSize];
-        struct spa_pod_builder builder = {buffer, sizeof(buffer), 0, {}, {}};
+        struct spa_pod_builder builder = {.data=buffer, .size=sizeof(buffer), ._padding=0, .state={}, .callbacks={}};
         auto format = [](auto fmt) {
             switch (fmt) {
                 case SampleFormat::U8:
@@ -103,6 +103,7 @@ class Sink::Impl : private PWInit {
             }
         };
         auto width = [](auto fmt) {
+            constexpr auto F64ByteSize = 8;
             switch (fmt) {
                 case SampleFormat::U8:
                 case SampleFormat::S8:
@@ -114,13 +115,13 @@ class Sink::Impl : private PWInit {
                 case SampleFormat::F32:
                     return 4;
                 case SampleFormat::F64:
-                    return 8;  // NOLINT(readability-magic-numbers)
+                    return F64ByteSize;
                 default:
                     return 0;
             }
         };
         stride_ = width(streamParams.format) * streamParams.channelCount;
-        spa_audio_info_raw info = {.format = format(streamParams.format),
+        const spa_audio_info_raw info = {.format = format(streamParams.format),
             .flags = 0,
             .rate = static_cast<unsigned>(streamParams.rate),
             .channels = streamParams.channelCount,
@@ -130,44 +131,49 @@ class Sink::Impl : private PWInit {
             pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY,
                 "Playback", PW_KEY_MEDIA_ROLE, "Music", nullptr);
 
-        static const pw_stream_events streamEvents = {PW_VERSION_STREAM_EVENTS,
-            nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-            [](void* data) {
+        // NOLINTBEGIN(clang-diagnostic-missing-designated-field-initializers)
+        static const pw_stream_events streamEvents = {
+            .version = PW_VERSION_STREAM_EVENTS,
+            .process = [](void* data) {
                 auto* self = static_cast<Sink::Impl*>(data);
-                auto* buffer = pw_stream_dequeue_buffer(self->stream_);
-                auto* buf = buffer->buffer;
+                auto* pwbuf = pw_stream_dequeue_buffer(self->stream_);
+                auto* buf = pwbuf->buffer;
                 auto maxFrames = static_cast<uint64_t>(buf->datas[0].maxsize) /
                                  self->stride_;
 #if PW_CHECK_VERSION(0, 3, 49)
-                auto frames = std::min(buffer->requested, maxFrames);
+                auto frames = std::min(pwbuf->requested, maxFrames);
 #else
                 auto frames = maxFrames;
 #endif
                 const AudioBuffer audioBuffer{
-                    buf->datas[0].data, static_cast<unsigned>(frames)};
+                    .data = buf->datas[0].data,
+                    .frameCount = static_cast<unsigned>(frames)};
                 buf->datas[0].chunk->offset = 0;
                 buf->datas[0].chunk->stride =
                     static_cast<int32_t>(self->stride_);
                 buf->datas[0].chunk->size =
                     self->fillBuffer_(audioBuffer) * self->stride_;
-                pw_stream_queue_buffer(self->stream_, buffer);
-            },
-            nullptr, nullptr, nullptr};
+                pw_stream_queue_buffer(self->stream_, pwbuf);
+            }};
+        // NOLINTEND(clang-diagnostic-missing-designated-field-initializers)
 
         stream_ = pw_stream_new_simple(pw_thread_loop_get_loop(loop_),
             "audio-src", props, &streamEvents, this);
 
         params[0] =
             spa_format_audio_raw_build(&builder, SPA_PARAM_EnumFormat, &info);
+        // NOLINTBEGIN(clang-analyzer-optin.core.EnumCastOutOfRange)
         pw_stream_connect(stream_, PW_DIRECTION_OUTPUT, PW_ID_ANY,
             static_cast<pw_stream_flags>(PW_STREAM_FLAG_AUTOCONNECT |
                                          PW_STREAM_FLAG_MAP_BUFFERS |
                                          PW_STREAM_FLAG_RT_PROCESS),
             params, 1);
+        // NOLINTEND(clang-analyzer-optin.core.EnumCastOutOfRange)
         pw_thread_loop_start(loop_);
     }
 
     ~Impl() {
+        stop();
         pw_thread_loop_destroy(loop_);
     }
 };

@@ -71,7 +71,7 @@ Toml::Toml(Toml::Node* node) noexcept : node_(node), doFree_(false) {
 
 Toml::~Toml() {
     if (node_ && !doFree_) {
-        node_.release();  // NOLINT
+        (void)node_.release();
     }
 }
 

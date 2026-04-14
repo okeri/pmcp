@@ -1,7 +1,7 @@
 project('pmcp', 'cpp',
         license: 'MIT',
         default_options: ['buildtype=debug',
-                          'cpp_std=c++20',
+                          'cpp_std=c++23',
                           'warning_level=3'])
 
 cc = meson.get_compiler('cpp')
@@ -48,10 +48,10 @@ endif
 
 spectralizer = get_option('spectralizer')
 if spectralizer == 'mkl'
-  add_project_arguments('-DENABLE_SPECTRALIZER=MKL', language: 'cpp')
+  add_project_arguments('-DENABLE_SPECTRALIZER=SPECTRALIZER_BACKEND_MKL', language: 'cpp')
   deps += dependency('mkl-static-lp64-seq')
 elif spectralizer == 'fftw'
-  add_project_arguments('-DENABLE_SPECTRALIZER=FFTW', language: 'cpp')
+  add_project_arguments('-DENABLE_SPECTRALIZER=SPECTRALIZER_BACKEND_FFTW', language: 'cpp')
   deps += dependency('fftw3')
 endif
 

@@ -4,8 +4,8 @@
 
 #include <complex>
 
-#define MKL 1
-#define FFTW 2
+#define SPECTRALIZER_BACKEND_MKL 1
+#define SPECTRALIZER_BACKEND_FFTW 2
 
 template <class Impl>
 class FFTBase : public Impl {
@@ -37,23 +37,35 @@ class FFTBase : public Impl {
     }
 };
 
-#if ENABLE_SPECTRALIZER == MKL
+#if ENABLE_SPECTRALIZER == SPECTRALIZER_BACKEND_MKL
 #include <mkl_dfti.h>
+#include <stdexcept>
 
 class Mkl {
   public:
     void exec(double* input, std::complex<double>* output) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-        DftiComputeForward(desc_, input, output);
+        if (DftiComputeForward(desc_, input, output) != DFTI_NO_ERROR) {
+            throw std::runtime_error("MKL DftiComputeForward failed");
+        }
     }
 
     void createPlan(unsigned len, [[maybe_unused]] double* input,
         [[maybe_unused]] std::complex<double>* out) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-        DftiCreateDescriptor(&desc_, DFTI_DOUBLE, DFTI_REAL, 1, len);
+        if (DftiCreateDescriptor(&desc_, DFTI_DOUBLE, DFTI_REAL, 1, len) !=
+            DFTI_NO_ERROR) {
+            throw std::runtime_error("MKL DftiCreateDescriptor failed");
+        }
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-        DftiSetValue(desc_, DFTI_PLACEMENT, DFTI_NOT_INPLACE);
-        DftiCommitDescriptor(desc_);
+        if (DftiSetValue(desc_, DFTI_PLACEMENT, DFTI_NOT_INPLACE) !=
+            DFTI_NO_ERROR) {
+            throw std::runtime_error("MKL DftiSetValue failed");
+        }
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+        if (DftiCommitDescriptor(desc_) != DFTI_NO_ERROR) {
+            throw std::runtime_error("MKL DftiCommitDescriptor failed");
+        }
     }
 
     void freePlan() {
@@ -66,7 +78,7 @@ class Mkl {
 
 using FFT = FFTBase<Mkl>;
 
-#elif ENABLE_SPECTRALIZER == FFTW
+#elif ENABLE_SPECTRALIZER == SPECTRALIZER_BACKEND_FFTW
 #include <fftw3.h>
 
 class Fftw {

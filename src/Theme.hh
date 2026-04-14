@@ -68,6 +68,7 @@ class Theme {
 
 inline constexpr Theme::Decoration operator|(
     const Theme::Decoration a, const Theme::Decoration b) {
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     return static_cast<Theme::Decoration>(
         std::underlying_type_t<Theme::Decoration>(a) |
         std::underlying_type_t<Theme::Decoration>(b));

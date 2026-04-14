@@ -1,4 +1,5 @@
 #include <format>
+#include <cstdint>
 
 #include "ui.hh"
 #include "Theme.hh"
@@ -12,7 +13,7 @@
 
 namespace {
 
-enum class PlaylistItemState : unsigned {
+enum class PlaylistItemState : std::uint8_t {
     None = 0,
     Selected = 0x1,
     Playing = 0x2,
@@ -20,22 +21,22 @@ enum class PlaylistItemState : unsigned {
 };
 
 constexpr PlaylistItemState operator|(
-    const PlaylistItemState a, const PlaylistItemState b) {
+    const PlaylistItemState lhs, const PlaylistItemState rhs) {
     return static_cast<PlaylistItemState>(
-        std::underlying_type_t<PlaylistItemState>(a) |
-        std::underlying_type_t<PlaylistItemState>(b));
+        std::underlying_type_t<PlaylistItemState>(lhs) |
+        std::underlying_type_t<PlaylistItemState>(rhs));
 }
 
 constexpr PlaylistItemState operator&(
-    const PlaylistItemState a, const PlaylistItemState b) {
+    const PlaylistItemState lhs, const PlaylistItemState rhs) {
     return static_cast<PlaylistItemState>(
-        std::underlying_type_t<PlaylistItemState>(a) &
-        std::underlying_type_t<PlaylistItemState>(b));
+        std::underlying_type_t<PlaylistItemState>(lhs) &
+        std::underlying_type_t<PlaylistItemState>(rhs));
 }
 
 constexpr PlaylistItemState& operator|=(
-    PlaylistItemState& a, const PlaylistItemState b) {
-    return a = a | b;
+    PlaylistItemState& lhs, const PlaylistItemState rhs) {
+    return lhs = lhs | rhs;
 }
 
 PlaylistItemState itemState(unsigned index, bool active,
@@ -61,6 +62,8 @@ using State = Player::State;
 
 constexpr auto MinWidth = 42U;
 constexpr auto SecPerMin = 60;
+
+namespace {
 
 void render(Playlist& playlist, Terminal::Plane& plane, const wchar_t* caption,
     bool active, bool numbers, unsigned left, unsigned top, unsigned cols,
@@ -99,9 +102,10 @@ void render(Playlist& playlist, Terminal::Plane& plane, const wchar_t* caption,
     };
 
     auto numWidth = [](unsigned number) {
+        constexpr auto DecimalBase = 10U;
         auto result = 1;
-        while (number > 9) {  // NOLINT(readability-magic-numbers)
-            number /= 10;     // NOLINT(readability-magic-numbers)
+        while (number >= DecimalBase) {
+            number /= DecimalBase;
             ++result;
         }
         return result;
@@ -138,17 +142,19 @@ void render(Playlist& playlist, Terminal::Plane& plane, const wchar_t* caption,
             plane << element.substr(0, maxElementLen);
         }
         plane << CSI::ClearDecoration;
-        if (playlist[itemIndex].duration) {
-            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-            auto dur = playlist[itemIndex].duration.value();
+        if (song.duration) {
+            auto dur = song.duration.value();
             plane << Cursor(right - totalTimeLen, yCursor)
                   << timeStyle(itemIndex)
                   << std::format(L"[{:02}:{:02}]", minutes, dur % SecPerMin);
         }
     }
-    plane.box(caption, Element::Title, {left, top, cols, rows},
+    plane.box(caption, Element::Title,
+        {.left = left, .top = top, .cols = cols, .rows = rows},
         active ? Element::SelectedFrame : Element::Frame);
 }
+
+}  // namespace
 
 void render(Status& status, Terminal::Plane& plane) {
     auto stateEntry = [](const auto& state) {
@@ -235,6 +241,7 @@ void render(Status& status, Terminal::Plane& plane) {
 
         auto vol = status.streamParams().volume;
         constexpr auto VolumeWidth = 13;
+        constexpr auto Percent = 100U;
         auto start = plane.size().cols - VolumeWidth;
         if (start < MinWidth) {
             return;
@@ -242,7 +249,7 @@ void render(Status& status, Terminal::Plane& plane) {
         plane << Cursor(start, 0) << Element::VolumeCaption << L"volume: "
               << Element::VolumeValue
               << std::format(
-                     L"{: >3}%", static_cast<unsigned>(vol * 100));  // NOLINT
+                     L"{: >3}%", static_cast<unsigned>(vol * Percent));
     };
     const auto* stopped = std::get_if<Player::Stopped>(&state);
     if (stopped == nullptr || stopped->error == nullptr) {
@@ -315,7 +322,8 @@ void render(Help& help, Terminal::Plane& plane) {
               << std::wstring_view(data[itemIndex].second)
                      .substr(0, size.cols - FirstColumnWidth - 1);
     }
-    plane.box(L"Key Bindings", Element::Title, {0, 0, size.cols, size.rows},
+    plane.box(L"Key Bindings", Element::Title,
+        {.left = 0, .top = 0, .cols = size.cols, .rows = size.rows},
         Element::Frame);
 }
 
@@ -326,14 +334,15 @@ void render(Lyrics& lyrics, Terminal::Plane& plane) {
     auto win = lyrics.scroll(1, size.rows - 1, data.size());
     auto maxWidth = size.cols - 2;
     auto yCursor =
-        size.rows - 2 > data.size() ? (size.rows - 2 - data.size()) / 2 + 1 : 1;
+        size.rows - 2 > data.size() ? ((size.rows - 2 - data.size()) / 2) + 1 : 1;
     for (auto itemIndex = win.start; itemIndex < win.end;
          ++itemIndex, ++yCursor) {
         auto textLine = data[itemIndex].substr(0, maxWidth);
-        plane << Cursor(1 + (maxWidth - Terminal::width(textLine)) / 2, yCursor)
+        plane << Cursor(1 + ((maxWidth - Terminal::width(textLine)) / 2), yCursor)
               << textLine;
     }
-    plane.box(lyrics.title(), Element::Title, {0, 0, size.cols, size.rows},
+    plane.box(lyrics.title(), Element::Title,
+        {.left = 0, .top = 0, .cols = size.cols, .rows = size.rows},
         Element::Frame);
 }
 
@@ -354,18 +363,18 @@ void render(Spectralizer& spectres, Terminal::Plane& plane) {
             barCount = (spectreWidth + 1) / (barWidth + 1);
         }
 
-        // NOLINTBEGIN(readability-magic-numbers)
-        static std::array<wchar_t, 8> barChars = {
+        constexpr auto BarLevels = 8U;
+        static std::array<wchar_t, BarLevels> barChars = {
             L'▁', L'▂', L'▃', L'▄', L'▅', L'▆', L'▇', L'█'};
 
         auto drawBar = [&plane](unsigned xstart, unsigned width,
                            unsigned maxHeight, unsigned value) {
-            auto fullRows = value >> 3;
-            auto lastRow = value & 0x7;
+            auto fullRows = value / BarLevels;
+            auto lastRow = value % BarLevels;
             for (auto i = 0U; i < fullRows; ++i) {
                 plane << Cursor(xstart, maxHeight - i);
                 for (auto sym = 0U; sym < width; ++sym) {
-                    plane << barChars[7];
+                    plane << barChars.back();
                 }
             }
             plane << Cursor(xstart, maxHeight - fullRows);
@@ -373,9 +382,8 @@ void render(Spectralizer& spectres, Terminal::Plane& plane) {
                 plane << barChars[lastRow];
             }
         };
-        // NOLINTEND(readability-magic-numbers)
         auto extra = spectreWidth - ((barWidth + 1) * barCount - 1);
-        auto xstart = 1U + extra / 2;
+        auto xstart = 1U + (extra / 2);
         auto maxHeight = size.rows - 2;
         auto maxValue = maxHeight << 3;
         if (spectres.bins().size() == barCount) {
@@ -392,8 +400,9 @@ void render(Spectralizer& spectres, Terminal::Plane& plane) {
             spectres.setBinCount(barCount);
         }
     }
-    plane.box(
-        L"", Element::Title, {0, 0, size.cols, size.rows}, Element::Frame);
+    plane.box(L"", Element::Title,
+        {.left = 0, .top = 0, .cols = size.cols, .rows = size.rows},
+        Element::Frame);
 }
 
 }  // namespace ui
