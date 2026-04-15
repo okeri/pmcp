@@ -153,7 +153,7 @@ class App {
                 break;
 
             case Action::Next:
-                if (std::get_if<Player::Stopped>(&player_.state()) != nullptr) {
+                if (std::holds_alternative<Player::Stopped>(player_.state())) {
                     return handleAction(Action::Play);
                 }
                 player_.emit(Command::Next);

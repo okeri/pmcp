@@ -1,5 +1,6 @@
 #include <array>
 #include <algorithm>
+#include <utility>
 
 #include "Toml.hh"
 #include "Keymap.hh"
@@ -15,13 +16,13 @@ const std::vector<std::wstring> keyNames = {L"backspace", L"left", L"right",
 constexpr auto NamesStart = 0x110002;
 
 constexpr input::Key operator&(const input::Key lhs, const input::Key rhs) {
-    return static_cast<input::Key>(std::underlying_type_t<input::Key>(lhs) &
-                                   std::underlying_type_t<input::Key>(rhs));
+    return static_cast<input::Key>(
+        std::to_underlying(lhs) & std::to_underlying(rhs));
 }
 
 constexpr input::Key operator~(const input::Key key) {
     // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
-    return static_cast<input::Key>(~std::underlying_type_t<input::Key>(key));
+    return static_cast<input::Key>(~std::to_underlying(key));
 }
 
 constexpr input::Key& operator&=(input::Key& lhs, const input::Key rhs) {

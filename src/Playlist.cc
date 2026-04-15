@@ -205,8 +205,7 @@ Playlist Playlist::load(const std::string& path) {
         Entry entry(path, true);
         while (std::getline(input, line)) {
             constexpr auto ExtInfLen = 8;
-            if (line.length() > ExtInfLen &&
-                line.compare(0, ExtInfLen, "#EXTINF:") == 0) {
+            if (line.starts_with("#EXTINF:")) {
                 if (auto end = line.find(','); end != std::string::npos) {
                     std::from_chars(
                         line.c_str() + ExtInfLen, line.c_str() + end, dur);

@@ -352,7 +352,7 @@ void render(Spectralizer& spectres, Terminal::Plane& plane) {
     if (size.cols < MinWidth) {
         return;
     }
-    if (std::get_if<Player::Playing>(&spectres.state()) != nullptr) {
+    if (std::holds_alternative<Player::Playing>(spectres.state())) {
         constexpr auto MaxBarCount = 32U;
         constexpr auto MinWidthBar = 4U;
         auto spectreWidth = size.cols - 2;

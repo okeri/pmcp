@@ -89,8 +89,10 @@ std::vector<float> calculateBins(
     static auto scale = binSpace(binCount, fftSize, params.rate);
     static auto fft = FFT(fftSize, audio.data(), frequences.data());
 
-    if (window.size() != fftSize || scale.size() != binCount) {
+    static auto prevRate = 0U;
+    if (window.size() != fftSize || scale.size() != binCount || prevRate != params.rate) {
         scale = binSpace(binCount, fftSize, params.rate);
+	prevRate = params.rate;
     }
 
     if (window.size() != fftSize) {
@@ -102,10 +104,7 @@ std::vector<float> calculateBins(
         [&params](auto* frames, [[maybe_unused]] unsigned frameCount) {
             using SampleType = std::remove_pointer_t<decltype(frames)>;
             const auto normValue =
-                params.format == SampleFormat::S24
-                    ? static_cast<double>((1 << 23) - 1)
-                    : static_cast<double>(
-                          std::numeric_limits<SampleType>::max());
+                static_cast<double>(std::numeric_limits<SampleType>::max());
             auto avg = [](SampleType val1, SampleType val2) {
                 if constexpr (std::is_signed<SampleType>()) {
                     return (std::abs(static_cast<double>(val1)) +
@@ -233,7 +232,7 @@ const Player::State& Player::start() {
 }
 
 void Player::stop() {
-    if (std::get_if<Stopped>(&state_) == nullptr) {
+    if (!std::holds_alternative<Stopped>(state_)) {
         sink_.stop();
         state_ = Stopped{};
     }
@@ -344,7 +343,7 @@ void Player::rew() noexcept {
 }
 
 Player::~Player() {
-    if (std::get_if<Stopped>(&state_) == nullptr) {
+    if (!std::holds_alternative<Stopped>(state_)) {
         sink_.stop();
     }
 }
