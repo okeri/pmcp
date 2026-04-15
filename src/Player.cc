@@ -69,7 +69,7 @@ std::vector<float> calculateBins(
         };
 
         auto pow = startPower;
-        auto lowest = hz2index(LowFreq);
+        auto lowest = hz2index(LowFreq) > 0U ? hz2index(LowFreq) - 1U : 0U;
         auto result = std::vector<unsigned>(binCount);
         for (auto i = 0U; i < result.size(); ++i, pow += step) {
             auto freq = std::pow(M_E, pow);
@@ -106,15 +106,9 @@ std::vector<float> calculateBins(
             const auto normValue =
                 static_cast<double>(std::numeric_limits<SampleType>::max());
             auto avg = [](SampleType val1, SampleType val2) {
-                if constexpr (std::is_signed<SampleType>()) {
-                    return (std::abs(static_cast<double>(val1)) +
-                               std::abs(static_cast<double>(val2))) /
-                           2;
-                } else {
-                    return (static_cast<double>(val1) +
-                               static_cast<double>(val2)) /
-                           2;
-                }
+                return (static_cast<double>(val1) +
+                           static_cast<double>(val2)) /
+                       2.0;
             };
             for (auto i = 0UL; i < window.size(); ++i) {
                 // 2 channels
