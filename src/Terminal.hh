@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string_view>
 
 #include "PImpl.hh"
@@ -36,12 +37,20 @@ class Terminal {
 
     class Plane {
         class Impl;
-        PImpl<Impl, 48, 8> impl_;  // NOLINT(readability-magic-numbers)
+        static constexpr auto PlaneSize = 48;
+        static constexpr auto PlaneAlign = 8;
+        PImpl<Impl, PlaneSize, PlaneAlign> impl_;
         explicit Plane(const Bounds& pos) noexcept;
         friend class Terminal;
 
       public:
-        enum class CSI { Reset, Clear, ClearDecoration, Invert, NoInvert };
+        enum class CSI : std::uint8_t {
+            Reset,
+            Clear,
+            ClearDecoration,
+            Invert,
+            NoInvert
+        };
 
         Plane(const Plane&) = delete;
         Plane(Plane&& other) noexcept;

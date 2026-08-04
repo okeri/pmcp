@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <filesystem>
+#include <tuple>
 
 #include "Config.hh"
 #include "Toml.hh"
@@ -17,7 +18,7 @@ std::string defaultHome() {
     return home;
 }
 
-std::string configPath() noexcept {
+std::string configPath() {
     const auto* configHome =
         getenv("XDG_CONFIG_HOME");  // NOLINT(concurrency-mt-unsafe)
     if (configHome != nullptr) {
@@ -59,7 +60,7 @@ Config::Config() {
         lyricsProvider =
             root.get<std::string>("lyrics_provider").value_or(lyricsProvider);
         tildaFixup(lyricsPath);
-        root.enumArray("allow_extensions",
+        std::ignore = root.enumArray("allow_extensions",
             [this](std::string_view value) { whiteList.emplace(value); });
     } else {
         if (!fs::exists(confPath)) {
@@ -110,12 +111,15 @@ Config::Config() {
 }
 
 Config::~Config() {
-    auto optsPath = (fs::path(configPath()) / "options.toml").string();
-    Toml toml;
-    toml.push("show_progress", options.showProgress);
-    toml.push("visualization", options.spectralizer);
-    toml.push("shuffle", options.shuffle);
-    toml.push("repeat", options.repeat);
-    toml.push("next", options.next);
-    toml.save(optsPath);
+    try {
+        auto optsPath = (fs::path(configPath()) / "options.toml").string();
+        Toml toml;
+        toml.push("show_progress", options.showProgress);
+        toml.push("visualization", options.spectralizer);
+        toml.push("shuffle", options.shuffle);
+        toml.push("repeat", options.repeat);
+        toml.push("next", options.next);
+        toml.save(optsPath);
+    } catch (const std::exception&) {  // NOLINT(bugprone-empty-catch)
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace input {
 
+// NOLINTNEXTLINE(cppcoreguidelines-use-enum-class,readability-enum-initial-value)
 enum Key : wchar_t {
     Null = 0,
     SpecialBase = 0x110000,

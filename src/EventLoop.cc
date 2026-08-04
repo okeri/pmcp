@@ -57,7 +57,7 @@ EventLoop::EventLoop(
                                 poll, EPOLL_CTL_ADD, evs[3].data.fd, &evs[3]);
                         }
                     } else if (events[i].data.fd == sigfd) {
-                        signalfd_siginfo info;
+                        signalfd_siginfo info{};
                         read(sigfd, &info, sizeof(info));
                         msgSender.send(Msg(input::Key::Resize));
                     } else if (events[i].data.fd == evs[3].data.fd) {
@@ -76,7 +76,7 @@ EventLoop::EventLoop(
             }
             close(sigfd);
         },
-        sender, socketPath) {
+        std::move(sender), socketPath) {
 }
 
 EventLoop::~EventLoop() {

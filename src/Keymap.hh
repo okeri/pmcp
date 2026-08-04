@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <optional>
 #include <unordered_map>
 #include "Action.hh"
@@ -19,7 +20,7 @@ class Keymap {
     [[nodiscard]] std::optional<Action> map(input::Key key) const noexcept;
 
     static std::wstring name(input::Key key);
-    static const std::wstring& description(unsigned index);
+    static std::wstring_view description(unsigned index);
 
   private:
     std::unordered_map<input::Key, Action> keymap_;

@@ -13,6 +13,8 @@
 #include "Spectralizer.hh"
 #include "Config.hh"
 
+namespace {
+
 class App {
     enum class DrawFlags : std::uint8_t {
         None = 0x0,
@@ -395,6 +397,8 @@ class App {
         Terminal::render();
     }
 };
+
+}  // namespace
 
 int main(int argc, char* argv[]) try {
     auto [sender, receiver] = channel<Msg>();

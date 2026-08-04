@@ -1,20 +1,21 @@
 #pragma once
 
+#include <array>
 #include <new>
 #include <cstddef>
 #include <utility>
 
 template <class T, size_t Len, size_t Align>
 class PImpl {
-    std::aligned_storage_t<Len, Align> data_;
+    alignas(Align) std::array<std::byte, Len> data_;
     T* ptr() noexcept {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        return std::launder(reinterpret_cast<T*>(&data_));
+        return std::launder(reinterpret_cast<T*>(data_.data()));
     }
 
     [[nodiscard]] const T* ptr() const noexcept {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        return std::launder(reinterpret_cast<const T*>(&data_));
+        return std::launder(reinterpret_cast<const T*>(data_.data()));
     }
 
   public:

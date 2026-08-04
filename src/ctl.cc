@@ -1,7 +1,10 @@
 #include <unordered_map>
 #include <algorithm>
+#include <cstdio>
 #include <filesystem>
 #include <print>
+#include <ranges>
+#include <stdexcept>
 #include <string>
 
 #include <sys/socket.h>
@@ -9,6 +12,8 @@
 #include <unistd.h>
 
 #include "Action.hh"
+
+namespace {
 
 class Client {
     int socket_;
@@ -44,8 +49,6 @@ class Client {
     }
 };
 
-namespace {
-
 std::string sockPath() {
     const auto* runtimePath =
         getenv("XDG_RUNTIME_DIR");  // NOLINT(concurrency-mt-unsafe)
@@ -57,7 +60,7 @@ std::string sockPath() {
 
 }  // namespace
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) try {
     std::unordered_map<std::string, Action> actionMap = {{"quit", Action::Quit},
         {"stop", Action::Stop}, {"pause", Action::Pause},
         {"prev", Action::Prev}, {"next", Action::Next}, {"play", Action::Play}};
@@ -65,10 +68,9 @@ int main(int argc, char* argv[]) {
     auto usage = [&actionMap](const char* name) {
         std::print("usage: {} <", name);
         std::string sep{};
-        for (const auto& [cmdName, cmdVal] : actionMap) {
+        for (const auto& cmdName : std::views::keys(actionMap)) {
             std::print("{}{}", sep, cmdName);
             sep = "|";
-            (void)cmdVal;
         }
         std::println(">");
     };
@@ -86,11 +88,11 @@ int main(int argc, char* argv[]) {
         usage(argv[0]);
         return -2;
     }
-    try {
-        auto client = Client(sockPath());
-        client.send(found->second);
-    } catch (std::runtime_error& e) {
-        std::println("{}", e.what());
-    }
+    auto client = Client(sockPath());
+    client.send(found->second);
     return 0;
+} catch (const std::exception& error) {
+    std::fputs(error.what(), stderr);
+    std::fputc('\n', stderr);
+    return -3;
 }

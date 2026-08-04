@@ -55,7 +55,7 @@ bool Playqueue::prev(bool repeat) noexcept {
 }
 
 void Playqueue::shuffle() noexcept {
-    auto rng = std::default_random_engine{};
+    auto rng = std::default_random_engine{std::random_device{}()};
     playing_ = modify(items_, playing_,
         std::shuffle<decltype(items_)::iterator, decltype(rng)>, rng);
 }

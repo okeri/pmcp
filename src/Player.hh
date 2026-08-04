@@ -1,12 +1,14 @@
 #pragma once
 
+#include <cstdint>
+
 #include "channel.hh"
 #include "Msg.hh"
 #include "Playqueue.hh"
 #include "Source.hh"
 #include "Sink.hh"
 
-enum class Command {
+enum class Command : std::uint8_t {
     Next,
     Prev,
     Stop,
@@ -16,7 +18,9 @@ enum class Command {
 
 class Player {
   public:
-    enum : unsigned { EndOfSong = 0xFFFFFFFF, SeekSeconds = 10 };
+    static constexpr auto EndOfSong = 0xFFFFFFFFU;
+    static constexpr auto SeekSeconds = 10U;
+
     struct Stopped {
         const wchar_t* error{nullptr};
     };

@@ -4,7 +4,9 @@
 
 class Status {
     unsigned progressDone_{0};
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const Player::State& state_;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const StreamParams& params_;
 
   public:

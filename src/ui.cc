@@ -382,7 +382,7 @@ void render(Spectralizer& spectres, Terminal::Plane& plane) {
                 plane << barChars[lastRow];
             }
         };
-        auto extra = spectreWidth - ((barWidth + 1) * barCount - 1);
+        auto extra = spectreWidth - (((barWidth + 1) * barCount) - 1);
         auto xstart = 1U + (extra / 2);
         auto maxHeight = size.rows - 2;
         auto maxValue = maxHeight << 3;

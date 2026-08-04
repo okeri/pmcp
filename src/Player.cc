@@ -89,10 +89,11 @@ std::vector<float> calculateBins(
     static auto scale = binSpace(binCount, fftSize, params.rate);
     static auto fft = FFT(fftSize, audio.data(), frequences.data());
 
-    static auto prevRate = 0U;
-    if (window.size() != fftSize || scale.size() != binCount || prevRate != params.rate) {
+    static auto prevRate = 0L;
+    if (window.size() != fftSize || scale.size() != binCount ||
+        prevRate != params.rate) {
         scale = binSpace(binCount, fftSize, params.rate);
-	prevRate = params.rate;
+        prevRate = params.rate;
     }
 
     if (window.size() != fftSize) {
@@ -105,10 +106,10 @@ std::vector<float> calculateBins(
             using SampleType = std::remove_pointer_t<decltype(frames)>;
             const auto normValue =
                 static_cast<double>(std::numeric_limits<SampleType>::max());
+            constexpr auto ChannelPair = 2.;
             auto avg = [](SampleType val1, SampleType val2) {
-                return (static_cast<double>(val1) +
-                           static_cast<double>(val2)) /
-                       2.0;
+                return (static_cast<double>(val1) + static_cast<double>(val2)) /
+                       ChannelPair;
             };
             for (auto i = 0UL; i < window.size(); ++i) {
                 // 2 channels
@@ -196,7 +197,7 @@ const Player::State& Player::start() {
         auto entry = queue_->current();
         auto result = decoder_.load(entry.path.c_str());
         if (result) {
-            params_ = std::move(*result);
+            params_ = *result;
             state_ = Playing{entry};
             frames_ = decoder_.frames();
             seekFrames_ = params_.rate * SeekSeconds;

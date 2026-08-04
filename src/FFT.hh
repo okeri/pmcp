@@ -4,7 +4,9 @@
 
 #include <complex>
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SPECTRALIZER_BACKEND_MKL 1
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SPECTRALIZER_BACKEND_FFTW 2
 
 template <class Impl>

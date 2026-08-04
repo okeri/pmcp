@@ -1,4 +1,5 @@
 #include <fstream>
+#include <tuple>
 #include <toml++/toml.hpp>
 
 #include "utf8.hh"
@@ -71,7 +72,7 @@ Toml::Toml(Toml::Node* node) noexcept : node_(node), doFree_(false) {
 
 Toml::~Toml() {
     if (node_ && !doFree_) {
-        (void)node_.release();
+        std::ignore = node_.release();
     }
 }
 

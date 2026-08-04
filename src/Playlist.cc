@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <charconv>
@@ -71,13 +72,11 @@ void Playlist::down(unsigned offset) noexcept {
     if (items_.empty()) {
         return;
     }
-    auto maxIndex = items_.size() - 1;
+    auto maxIndex = static_cast<unsigned>(items_.size() - 1);
     auto index = selected_.value_or(playing_.value_or(MaxSelected));
     if (index != MaxSelected) {
         index += offset;
-        if (index > maxIndex) {
-            index = maxIndex;
-        }
+        index = std::min(index, maxIndex);
     } else {
         index = 0;
     }

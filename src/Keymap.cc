@@ -1,5 +1,6 @@
 #include <array>
 #include <algorithm>
+#include <string_view>
 #include <utility>
 
 #include "Toml.hh"
@@ -7,11 +8,11 @@
 
 namespace {
 
-const std::vector<std::wstring> keyNames = {L"backspace", L"left", L"right",
-    L"up", L"down", L"home", L"end", L"pgup", L"pgdown", L"insert", L"delete",
-    L"enter", L"tab", L"esc", L"f0", L"f1", L"f2", L"f3", L"f4", L"f5", L"f6",
-    L"f7", L"f8", L"f9", L"f10", L"f11", L"f12", L"f13", L"f14", L"f15", L"f16",
-    L"f17", L"f18", L"f19", L"f20"};
+constexpr auto KeyNames = std::to_array<std::wstring_view>({L"backspace",
+    L"left", L"right", L"up", L"down", L"home", L"end", L"pgup", L"pgdown",
+    L"insert", L"delete", L"enter", L"tab", L"esc", L"f0", L"f1", L"f2", L"f3",
+    L"f4", L"f5", L"f6", L"f7", L"f8", L"f9", L"f10", L"f11", L"f12", L"f13",
+    L"f14", L"f15", L"f16", L"f17", L"f18", L"f19", L"f20"});
 
 constexpr auto NamesStart = 0x110002;
 
@@ -39,10 +40,10 @@ input::Key keyFromName(const std::wstring_view& name) {
     if (low == L"ctrl") {
         return input::Key::CtrlBase;
     }
-    if (auto found = std::ranges::find(keyNames, low);
-        found != keyNames.end()) {
+    if (const auto* found = std::ranges::find(KeyNames, low);
+        found != KeyNames.end()) {
         return static_cast<input::Key>(
-            NamesStart + std::distance(keyNames.begin(), found));
+            NamesStart + std::distance(KeyNames.begin(), found));
     }
     return input::key(name[0]);
 }
@@ -75,12 +76,12 @@ void strBreak(std::wstring_view input, Pred handler, IsSep issep,
 }
 
 struct ActionDescription {
-    std::string name;
-    std::wstring description;
+    std::string_view name;
+    std::wstring_view description;
 };
 
 constexpr auto Count = static_cast<unsigned>(Action::Count);
-const std::array<ActionDescription, Count> descriptions{{
+constexpr std::array<ActionDescription, Count> Descriptions{{
     {.name = "quit", .description = L"Quit program"},
     {.name = "go",
         .description = L"Play a playlist entry or file or enter to directory"},
@@ -202,12 +203,12 @@ Keymap::Keymap(const std::string& path) :
     };
 
     auto parseAction = [](const auto& strAction) {
-        if (auto found = std::ranges::find_if(descriptions,
+        if (const auto* found = std::ranges::find_if(Descriptions,
                 [&strAction](
                     const auto& entry) { return entry.name == strAction; });
-            found != descriptions.end()) {
+            found != Descriptions.end()) {
             return static_cast<Action>(
-                std::distance(descriptions.begin(), found));
+                std::distance(Descriptions.begin(), found));
         }
         return Action::ResetView;
     };
@@ -246,12 +247,12 @@ std::wstring Keymap::name(input::Key key) {
     } else if (key < input::Key::SpecialBase) {
         result += static_cast<wchar_t>(key);
     } else if (key >= NamesStart &&
-               key < NamesStart + static_cast<int>(keyNames.size())) {
-        result += keyNames[key - NamesStart];
+               key < NamesStart + static_cast<int>(KeyNames.size())) {
+        result += KeyNames[key - NamesStart];
     }
     return result;
 }
 
-const std::wstring& Keymap::description(unsigned index) {
-    return descriptions[index].description;
+std::wstring_view Keymap::description(unsigned index) {
+    return Descriptions[index].description;
 }

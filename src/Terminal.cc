@@ -96,7 +96,7 @@ const std::vector<std::wstring>& styles() {
         auto count = cast(Element::Count);
         styles.reserve(count);
 
-        for (auto i = 0; i < count; ++i) {
+        for (auto i = cast(Element::Default); i < count; ++i) {
             styles.emplace_back(stringify(Theme::style(cast(i))));
         }
         return styles;
@@ -208,6 +208,7 @@ class Cell {
     }
 };
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 std::wostream& operator<<(std::wostream& ostream, const Cell& cell) noexcept {
     if (cell.has(Flags::ClearDecoration)) {
         ostream << CSIPrefix << L"22;23;24;25;27;28;29;54;55;59;65m";

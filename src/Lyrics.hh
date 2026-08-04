@@ -30,7 +30,7 @@ class Lyrics final : public ScrollableView {
     Lyrics(Sender<Msg> progressSender, std::string provider,
         const std::string& path) noexcept;
     [[nodiscard]] const std::vector<std::wstring>& text() const noexcept;
-    void setSong(const std::wstring& title) noexcept;
-    void activate(bool act) noexcept;
+    void setSong(const std::wstring& title);
+    void activate(bool act);
     [[nodiscard]] const wchar_t* title() const noexcept;
 };

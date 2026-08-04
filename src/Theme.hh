@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <utility>
 #include <vector>
 #include <string>
@@ -9,7 +10,7 @@
 
 class Theme {
   public:
-    enum class Decoration : unsigned {
+    enum class Decoration : std::uint8_t {
         None = 0,
         Bold = 0x01,
         Dim = 0x02,
@@ -19,7 +20,7 @@ class Theme {
         Strike = 0x20
     };
 
-    enum class LineType {
+    enum class LineType : std::uint8_t {
         Vertical,
         Horisontal,
         TopLeft,
@@ -66,14 +67,14 @@ class Theme {
     static Theme& instance();
 };
 
-inline constexpr Theme::Decoration operator|(
-    const Theme::Decoration a, const Theme::Decoration b) {
+constexpr Theme::Decoration operator|(
+    const Theme::Decoration lhs, const Theme::Decoration rhs) {
     // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     return static_cast<Theme::Decoration>(
-        std::to_underlying(a) | std::to_underlying(b));
+        std::to_underlying(lhs) | std::to_underlying(rhs));
 }
 
-inline constexpr Theme::Decoration& operator|=(
-    Theme::Decoration& a, const Theme::Decoration b) {
-    return a = a | b;
+constexpr Theme::Decoration& operator|=(
+    Theme::Decoration& lhs, const Theme::Decoration rhs) {
+    return lhs = lhs | rhs;
 }

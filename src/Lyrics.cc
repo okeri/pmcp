@@ -9,6 +9,7 @@
 #include "glyr/glyr.h"
 
 namespace glyr {
+namespace {
 
 class Query {
     GlyrQuery query_;
@@ -69,6 +70,8 @@ class Fetcher {
         glyr_cleanup();
     }
 };
+
+}  // namespace
 
 }  // namespace glyr
 
@@ -149,7 +152,7 @@ const std::vector<std::wstring>& Lyrics::text() const noexcept {
     return text_;
 }
 
-void Lyrics::setSong(const std::wstring& title) noexcept {
+void Lyrics::setSong(const std::wstring& title) {
     loaded_ = false;
     title_ = title;
     if (active_) {
@@ -157,7 +160,7 @@ void Lyrics::setSong(const std::wstring& title) noexcept {
     }
 }
 
-void Lyrics::activate(bool act) noexcept {
+void Lyrics::activate(bool act) {
     active_ = act;
     if (act) {
         loadLyrics();

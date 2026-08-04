@@ -1,11 +1,11 @@
 #pragma once
 
+#include <cstdint>
 #include <type_traits>
 #include <utility>
 
-enum class Element {
+enum class Element : std::uint8_t {
     Default,
-    First = Default,
     Frame,
     SelectedFrame,
     Title,
@@ -31,10 +31,10 @@ enum class Element {
     Count
 };
 
-inline constexpr auto cast(Element element) {
+constexpr auto cast(Element element) {
     return std::to_underlying(element);
 }
 
-inline constexpr auto cast(std::underlying_type_t<Element> element) {
+constexpr auto cast(std::underlying_type_t<Element> element) {
     return static_cast<Element>(element);
 }

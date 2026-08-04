@@ -5,6 +5,7 @@ class Spectralizer {
     using SetBinCountFn = std::move_only_function<void(unsigned)>;
     static constexpr auto DefaultBinCount = 8U;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const Player::State& state_;
     SetBinCountFn setBinCount_;
     std::vector<float> bins_;

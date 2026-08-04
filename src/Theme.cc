@@ -2,6 +2,7 @@
 #include <optional>
 #include <array>
 #include <algorithm>
+#include <tuple>
 #include <utility>
 
 #include "Toml.hh"
@@ -138,23 +139,35 @@ void Theme::load(const char* path) {
         constexpr auto AnsiYellow = static_cast<unsigned char>(3);
         constexpr auto AnsiBlue = static_cast<unsigned char>(4);
         constexpr auto AnsiCyan = static_cast<unsigned char>(6);
-        self.styles_ = {{{}, {}, Decoration::None}, {{}, {}, Decoration::Dim},
-            {AnsiBlue, {}, Decoration::None}, {{}, {}, Decoration::Dim},
-            {{}, {}, Decoration::None}, {{}, AnsiBlue, Decoration::Bold},
-            {AnsiYellow, {}, Decoration::Bold | Decoration::Underline},
-            {{}, {}, Decoration::None}, {AnsiCyan, {}, Decoration::Dim},
-            {AnsiCyan, AnsiBlue, Decoration::None},
-            {AnsiCyan, {}, Decoration::Dim},
-            {AnsiCyan, AnsiBlue, Decoration::None}, {{}, {}, Decoration::Dim},
-            {AnsiYellow, {}, Decoration::Dim}, {{}, {}, Decoration::Dim},
-            {{}, {}, Decoration::Bold}, {AnsiBlue, {}, Decoration::Bold},
-            {AnsiCyan, {}, Decoration::Bold}, {AnsiYellow, {}, Decoration::Dim},
-            {AnsiYellow, {}, Decoration::Dim}, {{}, {}, Decoration::Dim},
-            {{}, AnsiBlue, Decoration::Bold}, {AnsiRed, {}, Decoration::None}};
+        self.styles_ = {{.fg = {}, .bg = {}, .decoration = Decoration::None},
+            {.fg = {}, .bg = {}, .decoration = Decoration::Dim},
+            {.fg = AnsiBlue, .bg = {}, .decoration = Decoration::None},
+            {.fg = {}, .bg = {}, .decoration = Decoration::Dim},
+            {.fg = {}, .bg = {}, .decoration = Decoration::None},
+            {.fg = {}, .bg = AnsiBlue, .decoration = Decoration::Bold},
+            {.fg = AnsiYellow,
+                .bg = {},
+                .decoration = Decoration::Bold | Decoration::Underline},
+            {.fg = {}, .bg = {}, .decoration = Decoration::None},
+            {.fg = AnsiCyan, .bg = {}, .decoration = Decoration::Dim},
+            {.fg = AnsiCyan, .bg = AnsiBlue, .decoration = Decoration::None},
+            {.fg = AnsiCyan, .bg = {}, .decoration = Decoration::Dim},
+            {.fg = AnsiCyan, .bg = AnsiBlue, .decoration = Decoration::None},
+            {.fg = {}, .bg = {}, .decoration = Decoration::Dim},
+            {.fg = AnsiYellow, .bg = {}, .decoration = Decoration::Dim},
+            {.fg = {}, .bg = {}, .decoration = Decoration::Dim},
+            {.fg = {}, .bg = {}, .decoration = Decoration::Bold},
+            {.fg = AnsiBlue, .bg = {}, .decoration = Decoration::Bold},
+            {.fg = AnsiCyan, .bg = {}, .decoration = Decoration::Bold},
+            {.fg = AnsiYellow, .bg = {}, .decoration = Decoration::Dim},
+            {.fg = AnsiYellow, .bg = {}, .decoration = Decoration::Dim},
+            {.fg = {}, .bg = {}, .decoration = Decoration::Dim},
+            {.fg = {}, .bg = AnsiBlue, .decoration = Decoration::Bold},
+            {.fg = AnsiRed, .bg = {}, .decoration = Decoration::None}};
     }
 
     if (auto line = root["line"]) {
-        line->enumArray([&self](std::wstring_view value) {
+        std::ignore = line->enumArray([&self](std::wstring_view value) {
             if (!value.empty()) {
                 self.lineChars_.push_back(value[0]);
             }
@@ -166,7 +179,7 @@ void Theme::load(const char* path) {
     }
 
     if (auto states = root["states"]) {
-        states->enumArray([&self](std::wstring_view value) {
+        std::ignore = states->enumArray([&self](std::wstring_view value) {
             if (!value.empty()) {
                 self.states_.emplace_back(value);
             }

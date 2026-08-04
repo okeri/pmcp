@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <expected>
 #include <vector>
 
@@ -9,10 +10,23 @@
 
 class Source {
     class Impl;
-    PImpl<Impl, 88, 8> impl_;  // NOLINT(readability-magic-numbers)
+
+#if defined(__aarch64__) || defined(_M_ARM64)
+    static constexpr auto SourceSize = 96;
+#else
+    static constexpr auto SourceSize = 88;
+#endif
+    static constexpr auto SourceAlign = 8;
+    PImpl<Impl, SourceSize, SourceAlign> impl_;
 
   public:
-    enum class Error { Ok, BadFormat, Open, Malformed, UnsupportedEncoding };
+    enum class Error : std::uint8_t {
+        Ok,
+        BadFormat,
+        Open,
+        Malformed,
+        UnsupportedEncoding
+    };
     using Buffer = std::vector<unsigned char>;
 
     Source() noexcept;

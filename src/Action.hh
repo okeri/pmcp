@@ -1,6 +1,8 @@
 #pragma once
 
-enum class Action {
+#include <cstdint>
+
+enum class Action : std::uint8_t {
     Quit,
     Play,
     Up,
