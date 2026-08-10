@@ -1,6 +1,9 @@
 # default music dir
 music_dir = '~'
 
+# restrict browsing to music_dir: it becomes the root and going up is disabled
+# chroot = false
+
 # default lyrics dir
 # lyrics_dir = "lyrics"
 

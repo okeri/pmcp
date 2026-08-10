@@ -60,6 +60,7 @@ Config::Config() {
         lyricsProvider =
             root.get<std::string>("lyrics_provider").value_or(lyricsProvider);
         tildaFixup(lyricsPath);
+        chroot = root.get<bool>("chroot").value_or(chroot);
         std::ignore = root.enumArray("allow_extensions",
             [this](std::string_view value) { whiteList.emplace(value); });
     } else {
@@ -71,6 +72,11 @@ Config::Config() {
         }
         home = defaultHome();
         tildaFixup(home);
+    }
+
+    home = fs::path(home).lexically_normal().string();
+    if (home.size() > 1 && home.back() == fs::path::preferred_separator) {
+        home.pop_back();
     }
 
     auto searchFullPath = [&confPath, &tildaFixup](const fs::path& path) {

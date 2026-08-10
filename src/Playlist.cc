@@ -14,6 +14,12 @@ namespace {
 
 constexpr auto MaxSelected = 0xffffffff;
 
+bool isRoot(const std::string& path) {
+    return config().chroot &&
+           std::filesystem::path(path).lexically_normal() ==
+               std::filesystem::path(config().home);
+}
+
 }  // namespace
 
 namespace fs = std::filesystem;
@@ -171,7 +177,7 @@ std::vector<Playlist::Entry> Playlist::recursiveCollect(unsigned index) {
 
 std::vector<Playlist::Entry> Playlist::collect(const std::string& path) {
     std::vector<Playlist::Entry> result;
-    if (path != "/") {
+    if (path != "/" && !isRoot(path)) {
         result.emplace_back(path, true);
     }
     for (const auto& entry : fs::directory_iterator(path)) {

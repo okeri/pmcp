@@ -14,6 +14,7 @@ struct Config {
     std::string playlistPath;
     std::string socketPath;
     std::unordered_set<std::string> whiteList;
+    bool chroot{false};
     Options options;
 
     Config();
