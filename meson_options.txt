@@ -1,3 +1,4 @@
 option('ctl', type : 'feature', value : 'enabled')
+option('mpris', type : 'feature', value : 'enabled')
 option('glyr', type : 'feature', value : 'auto')
 option('spectralizer', type : 'combo', choices : ['none', 'mkl', 'fftw'])

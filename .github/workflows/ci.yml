@@ -88,7 +88,7 @@ jobs:
         run: |
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
           sudo apt update -q
-          sudo apt install -y g++-15 meson ninja-build libsndfile1-dev libtag1-dev ${{matrix.glyr}} ${{matrix.setup.deps}}
+          sudo apt install -y g++-15 meson ninja-build libsndfile1-dev libtag1-dev libsystemd-dev ${{matrix.glyr}} ${{matrix.setup.deps}}
         shell: bash
 
       - name: Configure and build the app

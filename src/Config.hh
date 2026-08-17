@@ -12,7 +12,6 @@ struct Config {
     std::string lyricsPath;
     std::string lyricsProvider;
     std::string playlistPath;
-    std::string socketPath;
     std::unordered_set<std::string> whiteList;
     bool chroot{false};
     Options options;

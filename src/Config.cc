@@ -27,15 +27,6 @@ std::string configPath() {
     return (fs::path(defaultHome()) / ".config" / "pmcp").string();
 }
 
-std::string sockPath() {
-    const auto* runtimePath =
-        getenv("XDG_RUNTIME_DIR");  // NOLINT(concurrency-mt-unsafe)
-    if (runtimePath != nullptr) {
-        return (fs::path(runtimePath) / "pmcp.sock").string();
-    }
-    return "/tmp/pmcp.sock";
-}
-
 }  // namespace
 
 Config::Config() {
@@ -94,7 +85,6 @@ Config::Config() {
 
     auto optsPath = (confPath / "options.toml").string();
     playlistPath = (confPath / "playlist.m3u").string();
-    socketPath = sockPath();
     if (fs::exists(optsPath)) {
         auto root = Toml(optsPath);
         auto setBoolMaybe = [&root](bool& value, const std::string& key) {

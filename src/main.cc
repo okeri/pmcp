@@ -1,10 +1,14 @@
 #include <algorithm>
 #include <cstdint>
+#include <string>
+#include <string_view>
 #include <utility>
 
 #include "input.hh"
+#include "utf8.hh"
 
 #include "EventLoop.hh"
+#include "Mpris.hh"
 #include "Help.hh"
 #include "Lyrics.hh"
 #include "PlayerView.hh"
@@ -24,6 +28,7 @@ class App {
         All = 0x7
     };
     const Keymap& keymap_;
+    [[maybe_unused]] Mpris* mpris_;
     unsigned pageSize_{0};
     std::array<Terminal::Plane, 3> planes_;
     Player player_;
@@ -64,9 +69,10 @@ class App {
     }
 
   public:
-    App(Sender<Msg> sender, const Keymap& keymap, int argc,
+    App(Sender<Msg> sender, const Keymap& keymap, Mpris* mpris, int argc,
         char* argv[]) noexcept :
         keymap_(keymap),
+        mpris_(mpris),
         planes_({Terminal::createPlane(
                      {.left = 0, .top = 0, .cols = 0, .rows = 0}),
             Terminal::createPlane({.left = 0, .top = 0, .cols = 0, .rows = 0}),
@@ -105,6 +111,7 @@ class App {
                 auto queue = playview_->enter();
                 if (queue) {
                     player_.emit(Command::Play, std::move(queue));
+                    status_->setProgress(0);
                     playview_->markPlaying(player_.currentId());
                     updateLyricsSong(player_.currentEntry());
                 } else {
@@ -159,6 +166,7 @@ class App {
                     return handleAction(Action::Play);
                 }
                 player_.emit(Command::Next);
+                status_->setProgress(0);
                 playview_->markPlaying(player_.currentId());
                 updateLyricsSong(player_.currentEntry());
                 result = DrawFlags::All;
@@ -166,6 +174,7 @@ class App {
 
             case Action::Prev:
                 player_.emit(Command::Prev);
+                status_->setProgress(0);
                 playview_->markPlaying(player_.currentId());
                 result = DrawFlags::All;
                 break;
@@ -341,6 +350,29 @@ class App {
         return result;
     }
 
+    [[nodiscard]] Snapshot snapshot() noexcept {
+        auto result = Snapshot{};
+        result.state = static_cast<Snapshot::State>(player_.state().index());
+        result.shuffle = config().options.shuffle;
+        result.repeat = config().options.repeat;
+        result.volume = player_.streamParams().volume;
+        if (const auto* entry = player_.currentEntry(); entry != nullptr) {
+            result.position = status_->progress();
+            result.duration = entry->duration;
+            result.trackId = entry->id;
+            result.path = entry->path;
+            constexpr auto Separator = std::string_view(" - ");
+            auto title = utf8::convert(entry->title);
+            if (auto pos = title.find(Separator); pos != std::string::npos) {
+                result.artist = title.substr(0, pos);
+                result.title = title.substr(pos + Separator.size());
+            } else {
+                result.title = std::move(title);
+            }
+        }
+        return result;
+    }
+
     void handleEvent(const Msg& msg) {
         std::visit(
             [this](auto&& value) {
@@ -369,6 +401,9 @@ class App {
 #endif
                 } else if constexpr (std::is_same<Type, Action>()) {
                     drawFlags = handleAction(value);
+                } else if constexpr (std::is_same<Type, SetVolume>()) {
+                    player_.setVolume(value.value);
+                    drawFlags = DrawFlags::Status;
                 }
                 render(drawFlags);
             },
@@ -393,6 +428,11 @@ class App {
         if (hasFlag(DrawFlags::Status)) {
             status_.render(planes_[2]);
             term() << planes_[2];
+#ifdef ENABLE_MPRIS
+            if (mpris_ != nullptr) {
+                mpris_->publish(snapshot());
+            }
+#endif
         }
         Terminal::render();
     }
@@ -405,8 +445,14 @@ int main(int argc, char* argv[]) try {
     auto& conf = config();
     Terminal::loadTheme(conf.themePath.c_str());
     auto keymap = Keymap(conf.keymapPath);
-    auto eventLoop = EventLoop(sender, keymap, conf.socketPath.c_str());
-    auto app = App(sender, keymap, argc, argv);
+#ifdef ENABLE_MPRIS
+    auto mpris = Mpris(sender);
+    auto* bus = &mpris;
+#else
+    Mpris* bus = nullptr;
+#endif
+    auto eventLoop = EventLoop(sender, keymap, bus);
+    auto app = App(sender, keymap, bus, argc, argv);
 
     auto doQuit = [&keymap](const Msg& msg) {
         return std::visit(
